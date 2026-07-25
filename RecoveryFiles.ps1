@@ -16,22 +16,22 @@ Write-Host "██████╔╝█████╗  ██║     ██║ 
 Write-Host "██╔══██╗██╔══╝  ██║     ██║   ██║╚██╗ ██╔╝██╔══╝  ██╔══██╗  ╚██╔╝      ██║██╔═██╗  ██╔██╗ ██╔═══╝  ███╔╝  ██║     " -ForegroundColor Cyan
 Write-Host "██║  ██║███████╗╚██████╗╚██████╔╝ ╚████╔╝ ███████╗██║  ██║   ██║       ██║██║  ██╗██╔╝ ██╗██║     ███████╗███████╗" -ForegroundColor Cyan
 Write-Host "╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═════╝   ╚═══╝  ╚══════╝╚═╝  ╚═╝   ╚═╝       ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝     ╚══════╝╚══════╝" -ForegroundColor Cyan
-Write-Host "                                   [ Multi-Drive Deep Carver v2.0 ]" -ForegroundColor Gray
+Write-Host "                                   [ Multi-Drive Deep Carver v2.1 ]" -ForegroundColor Gray
 Write-Host "=========================================================================================================" -ForegroundColor DarkCyan
 
 # --- DETECCIÓN AUTOMÁTICA DE DEPENDENCIAS FORENSES (WINFR) ---
 if (-not (Get-Command winfr -ErrorAction SilentlyContinue)) {
-    Write-Host "[*] Instalandor de dependencias forenses de Microsoft en segundo plano..." -ForegroundColor Yellow
+    Write-Host "[*] Instalando dependencias forenses de Microsoft en segundo plano..." -ForegroundColor Yellow
     Start-Process winget -ArgumentList "install --id 9N26S50LN705 --accept-source-agreements --accept-package-agreements" -Wait -NoNewWindow
     if (-not (Get-Command winfr -ErrorAction SilentlyContinue)) {
-        Write-Host "[-] Error crítico: No se pudo instalar el motor automático de Microsoft. Revisa tu conexión a internet." -ForegroundColor Red
+        Write-Host "[-] Error crítico: No se pudo instalar el motor automático de Microsoft." -ForegroundColor Red
         Exit
     }
 }
 
 # --- DETECCIÓN DE UNIDADES ACTIVAS DEL USUARIO ---
 Write-Host "[+] Escaneando almacenamiento y discos conectados..." -ForegroundColor Green
-$Unidades = Get-Volume | Where-Object { $_.DriveLetter -and $_.DriveType -eq "Fixed" -or $_.DriveType -eq "Removable" }
+$Unidades = Get-Volume | Where-Object { $_.DriveLetter -and ($_.DriveType -eq "Fixed" -or $_.DriveType -eq "Removable") }
 
 Write-Host "`nUnidades disponibles encontradas:" -ForegroundColor White
 Write-Host "--------------------------------------------------------" -ForegroundColor DarkCyan
@@ -43,17 +43,15 @@ foreach ($u in $Unidades) {
 Write-Host "--------------------------------------------------------" -ForegroundColor DarkCyan
 
 # Seleccionar qué unidad se va a analizar
-$DriveToScan = Read-Host "`n[?] Introduce la letra del disco que quieres escanear (Ejemplo: C o D)"
-$DriveToScan = ($DriveToScan -replace ":", "").ToUpper() + ":"
+$DriveToScanInput = Read-Host "`n[?] Introduce la letra del disco que quieres escanear (Ejemplo: C o D)"
+$DriveToScan = ($DriveToScanInput -replace ":", "").ToUpper() + ":"
 
-# Validar que la unidad seleccionada exista de verdad
-if (-not (Get-Volume -DriveLetter $DriveToScan[0] -ErrorAction SilentlyContinue)) {
+if (-not (Get-Volume -DriveLetter $DriveToScanInput[0] -ErrorAction SilentlyContinue)) {
     Write-Host "[-] ERROR: La unidad especificada no existe en el sistema." -ForegroundColor Red
     Exit
 }
 
-# --- CONTROL AUTOMÁTICO DE SEGURIDAD PARA LA RUTA DE DESTINO ---
-# Buscamos de forma inteligente una unidad diferente para guardar los datos y evitar bloqueos forenses
+# --- CONTROL AUTOMÁTICO DE LA RUTA DE DESTINO ---
 $DriveToSave = $null
 foreach ($u in $Unidades) {
     if ("$($u.DriveLetter):" -ne $DriveToScan) {
@@ -62,13 +60,13 @@ foreach ($u in $Unidades) {
     }
 }
 
-# Si el usuario solo tiene un disco (C:), guardamos por defecto en C: pero avisando que winfr podría dar conflicto
+# Formatear rutas estrictas sin barras duplicadas ni conflictos para winfr
 if ($null -eq $DriveToSave) {
-    Write-Host "`n[!] ADVERTENCIA: Solo tienes un disco ($DriveToScan). Los datos se guardarán temporalmente ahí." -ForegroundColor Yellow
+    Write-Host "`n[!] ADVERTENCIA: Solo tienes un disco ($DriveToScan). Forzando volcado local..." -ForegroundColor Yellow
     $OutputDir = "C:\IKXPZL_Recovered"
 } else {
     Write-Host "`n[+] Configuración segura: Analizando unidad $DriveToScan y guardando resultados en $DriveToSave" -ForegroundColor Green
-    $OutputDir = Join-Path $DriveToSave "IKXPZL_Recovered"
+    $OutputDir = "$DriveToSave\IKXPZL_Recovered"
 }
 
 # --- SELECCIÓN DEL MÉTODO DE EXTRACCIÓN ---
@@ -79,25 +77,31 @@ $Mode = Read-Host "`n[?] Elige tu opción (1 o 2)"
 
 Write-Host "`n=========================================================================================================" -ForegroundColor DarkCyan
 
+# Asegurar la existencia previa del directorio de salida para evitar el error de "carpeta de destino"
+if (-not (Test-Path $OutputDir)) {
+    New-Item -Path $OutputDir -ItemType Directory | Out-Null
+}
+
 if ($Mode -eq "1") {
-    Write-Host "[*] Iniciando modo Segmento Extendido. Analizando bloques huérfanos de la unidad $DriveToScan..." -ForegroundColor Yellow
+    Write-Host "[*] Iniciando modo Segmento Extendido de Microsoft sobre $DriveToScan ..." -ForegroundColor Yellow
+    # Sintaxis limpia nativa requerida por winfr
     winfr $DriveToScan $OutputDir /regular /verbose
 }
 elif ($Mode -eq "2") {
-    $Ext = Read-Host "[?] Introduce la extensión del archivo que borraste (ejemplo: exe, sys, json, txt, png)"
+    $Ext = Read-Host "[?] Introduce la extensión del archivo que borraste (ejemplo: exe, sys, txt)"
     $Ext = $Ext -replace "\.", ""
     Write-Host "`n[*] Escaneando clusters buscando cabeceras binarias crudas para archivos .$Ext en $DriveToScan..." -ForegroundColor Yellow
     winfr $DriveToScan $OutputDir /extensive /x /y:$Ext
 }
 else {
-    Write-Host "[-] Selección inválida. Cancenlando proceso." -ForegroundColor Red
+    Write-Host "[-] Selección inválida. Cancelando proceso." -ForegroundColor Red
     Exit
 }
 
 # --- COMPROBACIÓN FINAL ---
-if (Test-Path $OutputDir) {
+if ((Get-ChildItem $OutputDir).Count -gt 0) {
     Write-Host "`n[✔] SUCCESS: ¡Extracción finalizada con éxito!" -ForegroundColor Green
     Write-Host "[+] Los archivos rescatados se han volcado en la ruta segura: '$OutputDir'" -ForegroundColor Cyan
 } else {
-    Write-Host "`n[-] Error: No se localizó la carpeta de destino. Revisa si el disco duro bloqueó el volcado." -ForegroundColor Red
+    Write-Host "`n[-] El motor terminó el análisis. Si la carpeta está vacía, el disco SSD ya purgó los bloques mediante TRIM." -ForegroundColor Yellow
 }
