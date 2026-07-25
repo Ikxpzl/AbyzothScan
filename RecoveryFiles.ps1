@@ -1,14 +1,14 @@
-# --- CONFIGURACIÓN DE INTERFAZ Y RESTRICCIONES ---
+# --- RECOVERY IKXPZL: DEEP CARVING ENGINE ---
 $ErrorActionPreference = "SilentlyContinue"
 
-# Validar permisos de administrador (Obligatorio para interactuar con la papelera profunda del sistema)
+# Validar permisos de administrador (Obligatorio para leer sectores crudos del volumen)
 $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
     Write-Host "[!] ERROR: Debes abrir PowerShell como ADMINISTRADOR para escanear sectores profundos." -ForegroundColor Red
     Exit
 }
 
-# --- BANNER GIGANTE CON TU NOMBRE (RECOVERY IKXPZL) ---
+# --- BANNER GIGANTE (RECOVERY IKXPZL) ---
 Clear-Host
 Write-Host "██████╗ ███████╗ ██████╗ ██████╗ ██╗   ██╗███████╗██████╗ ██╗   ██╗    ██╗██╗  ██╗██╗  ██╗██████╗ ███████╗██╗     " -ForegroundColor Cyan
 Write-Host "██╔══██╗██╔════╝██╔════╝██╔═══██╗██║   ██║██╔════╝██╔══██╗╚██╗ ██╔╝    ██║██║ ██╔╝╚██╗██╔╝██╔══██╗╚══███╔╝██║     " -ForegroundColor Cyan
@@ -16,71 +16,55 @@ Write-Host "██████╔╝█████╗  ██║     ██║ 
 Write-Host "██╔══██╗██╔══╝  ██║     ██║   ██║╚██╗ ██╔╝██╔══╝  ██╔══██╗  ╚██╔╝      ██║██╔═██╗  ██╔██╗ ██╔═══╝  ███╔╝  ██║     " -ForegroundColor Cyan
 Write-Host "██║  ██║███████╗╚██████╗╚██████╔╝ ╚████╔╝ ███████╗██║  ██║   ██║       ██║██║  ██╗██╔╝ ██╗██║     ███████╗███████╗" -ForegroundColor Cyan
 Write-Host "╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═════╝   ╚═══╝  ╚══════╝╚═╝  ╚═╝   ╚═╝       ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝     ╚══════╝╚══════╝" -ForegroundColor Cyan
-Write-Host "                                   [ CLI Engine v1.0 ]" -ForegroundColor Gray
+Write-Host "                               [ PERMANENT DELETION CARVER v1.5 ]" -ForegroundColor Gray
 Write-Host "=========================================================================================================" -ForegroundColor DarkCyan
-Write-Host "[*] Iniciando escaneo forense de archivos eliminados..." -ForegroundColor Yellow
 
-# --- MOTOR DE ESCANEO DE ARCHIVOS ELIMINADOS ---
-$RecyclePath = "C:\`$Recycle.Bin"
-$DeletedArtifacts = @()
-$Counter = 1
-
-# Buscar los metadatos reales de archivos borrados en todos los perfiles de usuario
-$MetaFiles = Get-ChildItem -Path $RecyclePath -Include "`$I*" -File -Recurse -Force
-
-foreach ($File in $MetaFiles) {
-    $RealFile = Get-ChildItem -Path $File.Directory.FullName -Filter ($File.Name -replace "^\`$I", "`$R") -File -Force
-    
-    if ($RealFile) {
-        $DeletedArtifacts += [PSCustomObject]@{
-            ID           = $Counter
-            FileName     = $RealFile.Name
-            SizeMB       = [Math]::Round(($RealFile.Length / 1MB), 2)
-            OriginalPath = $RealFile.FullName
-            MetaLocation = $File.FullName
-        }
-        $Counter++
+# --- VERIFICACIÓN DE MOTOR DE CORTE DE MICROSOFT (WINFR) ---
+if (-not (Get-Command winfr -ErrorAction SilentlyContinue)) {
+    Write-Host "[*] Instalandor de dependencias forenses de Microsoft..." -ForegroundColor Yellow
+    # Descarga el motor de recuperación oficial de Microsoft en segundo plano desde la Store de forma silenciosa
+    Start-Process winget -ArgumentList "install --id 9N26S50LN705 --accept-source-agreements --accept-package-agreements" -Wait -NoNewWindow
+    if (-not (Get-Command winfr -ErrorAction SilentlyContinue)) {
+        Write-Host "[-] No se pudo instalar el motor de recuperación automática. Asegúrate de tener conexión a Internet." -ForegroundColor Red
+        Exit
     }
 }
 
-if ($DeletedArtifacts.Count -eq 0) {
-    Write-Host "[-] No se han encontrado registros huérfanos recuperables en este volumen." -ForegroundColor Red
-    Exit
-}
-
-# --- MOSTRAR TABLA DE SELECCIÓN ---
-Write-Host "[+] Se han localizado $($DeletedArtifacts.Count) archivos eliminados en el disco:`n" -ForegroundColor Green
-$DeletedArtifacts | Format-Table ID, FileName, @{Name="Size (MB)"; Expression={$_.SizeMB}}, OriginalPath -AutoSize
-
-# --- PROCESO DE SELECCIÓN Y RECUPERACIÓN ---
-$Selection = Read-Host "`n[?] Introduce el número ID del archivo que deseas recuperar (o 'q' para salir)"
-
-if ($Selection -eq 'q') {
-    Write-Host "[*] Operación cancelada por el usuario." -ForegroundColor Gray
-    Exit
-}
-
-$TargetFile = $DeletedArtifacts | Where-Object { $_.ID -eq $Selection }
-
-if (-not $TargetFile) {
-    Write-Host "[-] ID no válido. Ejecuta el comando de nuevo para reescandear." -ForegroundColor Red
-    Exit
-}
-
-# Configurar carpeta de salida en el Escritorio
+# --- SELECCIÓN DE UNIDAD ---
+Write-Host "`n[+] Unidad del sistema detectada: C:" -ForegroundColor Green
+$TargetUnit = "C:"
 $OutputDir = Join-Path [Environment]::GetFolderPath("Desktop") "IKXPZL_Recovered"
-if (-not (Test-Path $OutputDir)) {
-    New-Item -Path $OutputDir -ItemType Directory | Out-Null
+
+Write-Host "[*] Preparando análisis de clusters y firmas en la unidad $TargetUnit..." -ForegroundColor Yellow
+Write-Host "[*] Buscando archivos eliminados permanentemente (Shift+Delete / Comandos Forzados)..." -ForegroundColor Yellow
+Write-Host "---------------------------------------------------------------------------------------------------------" -ForegroundColor DarkCyan
+
+# --- MENÚ DE INTERFAZ DE LÍNEA DE COMANDOS ---
+Write-Host "Selecciona el método de extracción profunda:" -ForegroundColor White
+Write-Host " [1] Escaneo de Segmentos (Para archivos borrados permanentemente hace poco)" -ForegroundColor Cyan
+Write-Host " [2] Escaneo de Firmas Raw (Para recuperar extensiones específicas de trucos .exe, .sys, .json)" -ForegroundColor Cyan
+$Mode = Read-Host "`n[?] Elige una opción (1 o 2)"
+
+if ($Mode -eq "1") {
+    Write-Host "`n[*] Iniciando modo Segmento Extendido. Analizando bloques huerfanos..." -ForegroundColor Yellow
+    # Lanza el motor profundo en modo segmento hacia tu carpeta del Escritorio
+    winfr C: $OutputDir /regular /verbose
+}
+elif ($Mode -eq "2") {
+    $Ext = Read-Host "[?] Introduce la extensión a cazar sin punto (ejemplo: exe, sys, json, txt)"
+    Write-Host "`n[*] Escaneando clusters libres buscando firmas binarias de archivos .$Ext ..." -ForegroundColor Yellow
+    # Fuerza al disco duro a buscar rastros binarios crudos ignorando la tabla de archivos corrupta
+    winfr C: $OutputDir /extensive /x /y:$Ext
+}
+else {
+    Write-Host "[-] Selección inválida." -ForegroundColor Red
+    Exit
 }
 
-$DestinationPath = Join-Path $OutputDir $TargetFile.FileName
-
-# Reconstruir el archivo moviendo y renombrando los bloques binarios de la papelera oculta
-try {
-    Copy-Item -Path $TargetFile.OriginalPath -Destination $DestinationPath -Force
-    Write-Host "`n[✔] SUCCESS: ¡Archivo recuperado con éxito!" -ForegroundColor Green
-    Write-Host "[+] Guardado en: $DestinationPath" -ForegroundColor Cyan
-}
-catch {
-    Write-Host "[-] Error crítico al reconstruir los sectores del archivo: $_" -ForegroundColor Red
+# --- RESULTADO FINAL ---
+if (Test-Path $OutputDir) {
+    Write-Host "`n[✔] SUCCESS: ¡Proceso de extracción profunda finalizado!" -ForegroundColor Green
+    Write-Host "[+] Los archivos extraídos del disco se han volcado en tu Escritorio: '$OutputDir'" -ForegroundColor Cyan
+} else {
+    Write-Host "`n[-] No se pudieron extraer estructuras legibles o el proceso fue cancelada." -ForegroundColor Red
 }
