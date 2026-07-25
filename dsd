@@ -1,0 +1,97 @@
+# Verificar privilegios de Administrador
+if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    Write-Warning "¡ATENCIÓN! Este script requiere permisos de ADMINISTRADOR."
+    Read-Host -Prompt "Presiona Enter para salir"
+    Exit
+}
+
+Clear-Host
+$lastThreeHours = (Get-Date).AddHours(-3)
+
+Write-Host "======================================================" -ForegroundColor Cyan
+Write-Host "   SCREENSHARE AVANZADO: MACROS, AUTOCLICKERS Y COMBAT " -ForegroundColor Cyan
+Write-Host "======================================================" -ForegroundColor Cyan
+
+# 1. RASTREO DE LOGS DE CONTROLADORES DE RATÓN (Macros de Razer, Logitech, Corsair)
+Write-Host "`n[+] Buscando perfiles de Macros en software de periféricos..." -ForegroundColor Yellow
+$macroPaths = @(
+    "$env:APPDATA\Logitech\Logitech Gaming Software\profiles",
+    "$env:LOCALAPPDATA\Logitech\LGUB\profiles",
+    "$env:PROGRAMDATA\Razer\Synapse\Accounts",
+    "$env:APPDATA\Corsair\CUE4\profiles"
+)
+$macroFound = $false
+foreach ($path in $macroPaths) {
+    if (Test-Path $path) {
+        $recentMacros = Get-ChildItem -Path $path -Recurse -ErrorAction SilentlyContinue | 
+            Where-Object { $_.LastWriteTime -gt $lastThreeHours }
+        if ($recentMacros) {
+            Write-Host "[!] ALERTA: Perfil de macro modificado recientemente en: $path" -ForegroundColor Red
+            $recentMacros | Select-Object Name, LastWriteTime | Format-Table -AutoSize
+            $macroFound = $true
+        }
+    }
+}
+if (-not $macroFound) { Write-Host "-> No se detectaron modificaciones recientes en perfiles de software oficial." -ForegroundColor Green }
+
+# 2. DETECCIÓN DE PROCESOS REPETITIVOS (AutoClickers basados en AutoHotkey, JAutoClicker, etc.)
+Write-Host "`n[+] Escaneando procesos activos en busca de AutoClickers o Scripts..." -ForegroundColor Yellow
+$clickerProcesses = Get-Process | Where-Object { 
+    $_.Name -match "clicker" -or $_.Name -match "autohotkey" -or $_.Name -match "ahk" -or 
+    $_.Name -match "macro" -or $_.Name -match "gsauto" -or $_.Name -match "opauto" -or $_.Description -match "click"
+} -ErrorAction SilentlyContinue
+
+if ($clickerProcesses) {
+    Write-Host "[!] ALERTA: Procesos de clickers/macros activos detectados:" -ForegroundColor Red
+    $clickerProcesses | Select-Object Name, Id, Path | Format-Table -AutoSize
+} else {
+    Write-Host "-> No se encontraron procesos de clickers obvios en ejecución." -ForegroundColor Green
+}
+
+# 3. ESCANEO DE MÓDULOS DE COMBATE (Aimbot, Reach, Killaura - Rastros en Registro y Syslogs)
+Write-Host "`n[+] Buscando hilos o nombres clave de módulos de combate (Aimbot/Reach)..." -ForegroundColor Yellow
+# Buscar en el registro de compatibilidad de Windows (PCA), donde quedan grabados programas ejecutados dañinos
+$pcaPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Compatibility Assistant\Store"
+$cheatKeywords = "reach|aimbot|killaura|hitbox|velocity|misplace|triggerbot|silentaim"
+
+if (Test-Path $pcaPath) {
+    $pcaEntries = Get-ItemProperty -Path $pcaPath -ErrorAction SilentlyContinue
+    $foundPca = $false
+    foreach ($property in $pcaEntries.psobject.Properties) {
+        if ($property.Name -match $cheatKeywords -or $property.Value -match $cheatKeywords) {
+            Write-Host "[!] Archivo sospechoso registrado por Windows (PCA): $($property.Name)" -ForegroundColor Red
+            $foundPca = $true
+        }
+    }
+    if (-not $foundPca) { Write-Host "-> Registro de compatibilidad limpio de palabras clave de combate." -ForegroundColor Green }
+}
+
+# 4. EXTRACCIÓN DE EVENTOS DE HARDWARE (¿Se conectó un USB con Cheats?)
+Write-Host "`n[+] Comprobando historial reciente de dispositivos USB conectados (Dispositivos fantasmas)..." -ForegroundColor Yellow
+$usbEvents = Get-WinEvent -LogName "Microsoft-Windows-Partition/Diagnostic" -ErrorAction SilentlyContinue | 
+    Where-Object { $_.TimeCreated -gt $lastThreeHours } | Select-Object TimeCreated, Message -First 5
+
+if ($usbEvents) {
+    Write-Host "[!] Dispositivos de almacenamiento o USB detectados en las últimas 3 horas:" -ForegroundColor Orange
+    foreach ($event in $usbEvents) {
+        Write-Host "-> [$($event.TimeCreated)] $($event.Message)" -ForegroundColor Gray
+    }
+} else {
+    Write-Host "-> No hay actividad USB sospechosa reciente." -ForegroundColor Green
+}
+
+# 5. BÚSQUEDA DE ARCHIVOS BORRADOS EN LA PAPELERA (Bypass de borrado rápido)
+Write-Host "`n[+] Revisando si hay residuos de ejecutables modificados en la papelera..." -ForegroundColor Yellow
+$recycleBin = Get-ChildItem -Path 'C:\$Recycle.Bin' -Recurse -Force -ErrorAction SilentlyContinue | 
+    Where-Object { $_.Name -match "exe" -or $_.Name -match "jar" -or $_.Name -match $cheatKeywords }
+if ($recycleBin) {
+    Write-Host "[!] Residuos sospechosos encontrados en la Papelera de Reciclaje:" -ForegroundColor Orange
+    $recycleBin | Select-Object Name, Length, LastWriteTime | Format-Table -AutoSize
+} else {
+    Write-Host "-> Papelera limpia de ejecutables sospechosos." -ForegroundColor Green
+}
+
+Write-Host "`n======================================================" -ForegroundColor Cyan
+Write-Host "                ANÁLISIS DE COMBATE CONCLUIDO         " -ForegroundColor Cyan
+Write-Host "======================================================" -ForegroundColor Cyan
+Read-Host -Prompt "Presiona Enter para finalizar"
