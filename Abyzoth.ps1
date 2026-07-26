@@ -1,5 +1,5 @@
 # =========================================================================
-#  ABYZOTH SCAN v6.5.0 - Sistema Forense Ampliado de Alta Velocidad
+#  ABYZOTH SCAN v1.0.0 - Sistema Forense Ampliado de Alta Velocidad
 # =========================================================================
 #  Desarrollado por: IkxPzl
 #  Requisito: Ejecutar en una consola de PowerShell como Administrador.
