@@ -1,4 +1,4 @@
-# 💀 ABYZOTH SCAN v6.5.0 - Sistema Forense de Alta Velocidad
+# 💀 ABYZOTH SCAN v1.1.0 - Sistema Forense de Alta Velocidad
 
 ![PowerShell](https://shields.io)
 ![Security](https://shields.io)
