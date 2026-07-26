@@ -1,5 +1,5 @@
 # =========================================================================
-#  ABYZOTH SCAN v5.0.0 - Sistema Forense por Índices
+#  ABYZOTH SCAN v1.0.1 - Sistema Forense por Índices (Sintaxis Corregida)
 # =========================================================================
 #  Desarrollado por: IkxPzl
 #  Requisito: Ejecutar en una consola de PowerShell como Administrador.
@@ -20,21 +20,21 @@ $Alertas_Bypass   = @()
 
 # Cabecera estética inicial
 Write-Host "=========================================================================" -ForegroundColor DarkRed
-Write-Host "                      ABYZOTH SCAN (NUEVA ESTRUCTURA)                    " -ForegroundColor Red
+Write-Host "                      ABYZOTH SCAN (SINTAXIS FIJADA)                    " -ForegroundColor Red
 Write-Host "                       DESARROLLADO POR: IKXPZL                          " -ForegroundColor Yellow
 Write-Host "=========================================================================" -ForegroundColor DarkRed
 Write-Host "[+] Iniciando recolección de datos en segundo plano..." -ForegroundColor Gray
 
 # =========================================================================
-# FASE 1: RECOLECCIÓN DE DATOS (PROCESAMIENTO LINEAL SIN ANIDACIÓN)
+# FASE 1: RECOLECCIÓN DE DATOS (PROCESAMIENTO LINEAL CORREGIDO)
 # =========================================================================
 
 # Sección A: Auditoría de Eventos de Consola (ID 4688)
 $EventosSeguridad = Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4688} -ErrorAction SilentlyContinue
-foreach ($Ev en $EventosSeguridad) {
+foreach ($Ev in $EventosSeguridad) {
     $LineaComando = $Ev.Message.ToLower()
     if ($LineaComando -match "python" -or $LineaComando -match "cmd.exe" -or $LineaComando -match "powershell.exe") {
-        foreach ($Firma en $FirmasSospechosas) {
+        foreach ($Firma in $FirmasSospechosas) {
             if ($LineaComando -like "*$Firma*") {
                 $Alertas_Comandos += "[!] COINCIDENCIA: '$Firma' encontrada en -> $($Ev.TimeCreated.ToString('HH:mm:ss'))"
             }
@@ -44,8 +44,8 @@ foreach ($Ev en $EventosSeguridad) {
 
 # Sección B: Auditoría de Procesos Activos y PSR
 $TodosLosProcesos = Get-Process
-foreach ($P en $TodosLosProcesos) {
-    foreach ($Firma en @("zen", "firefox", "obs", "medal", "sharex", "autohotkey", "psr")) {
+foreach ($P in $TodosLosProcesos) {
+    foreach ($Firma in @("zen", "firefox", "obs", "medal", "sharex", "autohotkey", "psr")) {
         if ($P.Name.ToLower() -match $Firma) {
             try { $RutaBinar = $P.Path } catch { $RutaBinar = "Oculto/Protegido" }
             $Alertas_Memoria += "[!] PROCESO ACTIVO: Se detectó '$($P.Name)' (PID: $($P.Id)) en la ruta [$RutaBinar]"
@@ -55,7 +55,7 @@ foreach ($P en $TodosLosProcesos) {
 
 # Sección C: Auditoría de Persistencia en PcaSvc
 $EventosPca = Get-WinEvent -FilterHashtable @{LogName="Microsoft-Windows-Application-Experience/Program-Telemetry"; Id=100} -ErrorAction SilentlyContinue
-foreach ($Ev en $EventosPca) {
+foreach ($Ev in $EventosPca) {
     $MsgPca = $Ev.Message.ToLower()
     if ($MsgPca -match "\.bat" -or $MsgPca -match "cmd.exe" -or $MsgPca -match "temp") {
         $Alertas_PcaSvc += "[!] REGISTRO PCASVC ($($Ev.TimeCreated.ToString('HH:mm:ss'))): Script/Comando -> $($Ev.Message -replace '\s+', ' ')"
@@ -76,21 +76,21 @@ if ($ContadorPf -lt 15) {
 $RutaBam = "HKLM:\SYSTEM\CurrentControlSet\Services\bam\State\UserSettings"
 if (Test-Path $RutaBam) {
     $SubClavesBam = Get-ChildItem -Path $RutaBam
-    foreach ($Clave en $SubClavesBam) {
+    foreach ($Clave in $SubClavesBam) {
         $ValoresUsuario = Get-ItemProperty -Path $Clave.PSPath -ErrorAction SilentlyContinue
         if ($ValoresUsuario) {
-            foreach ($Propiedad en $ValoresUsuario.PSObject.Properties) {
+            foreach ($Propiedad in $ValoresUsuario.PSObject.Properties) {
                 if ($Propiedad.Name -match "\.exe|\.bat|\.py|\.ahk") {
                     $RutaNormalizada = $Propiedad.Name.ToLower()
                     
                     # Verificar si la ruta está en la lista de exclusiones
                     $Ignorar = $false
-                    foreach ($Excluir en $Exclusiones) {
+                    foreach ($Excluir in $Exclusiones) {
                         if ($RutaNormalizada -like "*$Excluir*") { $Ignorar = $true }
                     }
                     
                     if (-not $Ignorar) {
-                        foreach ($Firma en $FirmasSospechosas) {
+                        foreach ($Firma in $FirmasSospechosas) {
                             if ($RutaNormalizada -like "*$Firma*") {
                                 if (-not (Test-Path $Propiedad.Name -ErrorAction SilentlyContinue)) {
                                     $Alertas_Bypass += "[!] EVASIÓN BAM: El archivo de patrón [$Firma] fue ejecutado y posteriormente BORRADO: $($Propiedad.Name)"
@@ -109,7 +109,7 @@ if (Test-Path $RutaBam) {
 # =========================================================================
 Clear-Host
 Write-Host "=========================================================================" -ForegroundColor DarkRed
-Write-Host "                         ABYZOTH SCAN v5.0.0                             " -ForegroundColor Red
+Write-Host "                         ABYZOTH SCAN v5.0.1                             " -ForegroundColor Red
 Write-Host "                       DESARROLLADO POR: IKXPZL                          " -ForegroundColor Yellow
 Write-Host "=========================================================================" -ForegroundColor DarkRed
 
@@ -118,7 +118,7 @@ Write-Host "`n┌─────────────────────
 Write-Host "│ [MÓDULO 1] RESULTADOS DE TELEMETRÍA DE COMANDOS (PYTHON / SHELL)      │" -ForegroundColor Cyan
 Write-Host "└───────────────────────────────────────────────────────────────────────┘" -ForegroundColor Cyan
 if ($Alertas_Comandos.Count -gt 0) {
-    foreach ($A en $Alertas_Comandos) { Write-Host " $A" -ForegroundColor Red }
+    foreach ($A in $Alertas_Comandos) { Write-Host " $A" -ForegroundColor Red }
 } else {
     Write-Host " [-] Registro limpio. No se encontraron comandos anómalos." -ForegroundColor Green
 }
@@ -128,7 +128,7 @@ Write-Host "`n┌─────────────────────
 Write-Host "│ [MÓDULO 2] RESULTADOS DE MEMORIA VOLÁTIL Y PROCESOS DE CAPTURA (PSR) │" -ForegroundColor Cyan
 Write-Host "└───────────────────────────────────────────────────────────────────────┘" -ForegroundColor Cyan
 if ($Alertas_Memoria.Count -gt 0) {
-    foreach ($A en $Alertas_Memoria) { Write-Host " $A" -ForegroundColor DarkYellow }
+    foreach ($A in $Alertas_Memoria) { Write-Host " $A" -ForegroundColor Yellow }
 } else {
     Write-Host " [-] Memoria limpia. No hay softwares de grabación o PSR activos." -ForegroundColor Green
 }
@@ -138,7 +138,7 @@ Write-Host "`n┌─────────────────────
 Write-Host "│ [MÓDULO 3] HISTORIAL PERSISTENTE DE SCRIPTS .BAT (PCASVC TELEMETRY)   │" -ForegroundColor Cyan
 Write-Host "└───────────────────────────────────────────────────────────────────────┘" -ForegroundColor Cyan
 if ($Alertas_PcaSvc.Count -gt 0) {
-    foreach ($A en $Alertas_PcaSvc) { Write-Host " $A" -ForegroundColor Yellow }
+    foreach ($A in $Alertas_PcaSvc) { Write-Host " $A" -ForegroundColor Yellow }
 } else {
     Write-Host " [-] Telemetría limpia. Sin rastros de scripts de limpieza .bat recientes." -ForegroundColor Green
 }
@@ -148,7 +148,7 @@ Write-Host "`n┌─────────────────────
 Write-Host "│ [MÓDULO 4] ANÁLISIS DE EVASIONES E INTEGRIDAD (PREFETCH Y REGISTRO BAM)│" -ForegroundColor Cyan
 Write-Host "└───────────────────────────────────────────────────────────────────────┘" -ForegroundColor Cyan
 if ($Alertas_Bypass.Count -gt 0) {
-    foreach ($A en $Alertas_Bypass) { Write-Host " $A" -ForegroundColor Red }
+    foreach ($A in $Alertas_Bypass) { Write-Host " $A" -ForegroundColor Red }
 } else {
     Write-Host " [-] Integridad verificada. No se detectaron borrados ni modificaciones." -ForegroundColor Green
 }
@@ -179,7 +179,7 @@ $($Alertas_PcaSvc -join "`r`n")
 $(if($Alertas_PcaSvc.Count -eq 0){"Sin alertas."})
 
 [MÓDULO 4] INTENCIONES DE BYPASS Y BORRADOS (BAM / PREFETCH):
-$Alertas_Bypass
+$($Alertas_Bypass -join "`r`n")
 $(if($Alertas_Bypass.Count -eq 0){"Sin alertas."})
 =========================================================================
 "@
