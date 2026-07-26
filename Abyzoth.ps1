@@ -1,16 +1,16 @@
 # =========================================================================
-#  ABYZOTH SCAN v6.3.0 - Sistema Forense Avanzado (Clean Console Fix)
+#  ABYZOTH SCAN v6.5.0 - Sistema Forense Ampliado de Alta Velocidad
 # =========================================================================
 #  Desarrollado por: IkxPzl
 #  Requisito: Ejecutar en una consola de PowerShell como Administrador.
 
 Clear-Host
-$Version = "6.3.0"
+$Version = "6.5.0"
 $FechaActual = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
 $RutaReporte = "$env:USERPROFILE\Desktop\Abyzoth_Scan_Report_$FechaActual.txt"
 $RutaReporteConsoleHost = "$env:USERPROFILE\Desktop\Abyzoth_ConsoleHost_Full_$FechaActual.txt"
 
-# 1. ARREGLOS DE CONTROL (LISTAS DE BÚSQUEDA Y EXCLUSIÓN)
+# 1. ARREGLOS DE CONTROL (LISTAS DE BÚSQUEDA Y EXCLUSIÓN MULTI-CAPA)
 $FirmasSospechosas = @("ffmpeg", "grabadora", "record", "stream", "obs", "d3d", "capture", "zen", "mozilla", "firefox", "file:", "medal", "action", "bandicam", "sharex", "vlc", "lightshot", "overwolf", "shadowplay", "relive", "screen", "recorder", "overlay", "injector", "temp", "macro", "trigger", "recoil", "aim", "cheat", "bhop", "script", "hotkey", "psr", "meny.py", "menu.py", ".py")
 $Exclusiones       = @("roblox", "overwolf", "nvidia", "discord", "spotify", "steam", "epicgames", "microsoft")
 
@@ -19,22 +19,22 @@ $Alertas_Comandos   = @()
 $Alertas_Memoria    = @()
 $Alertas_PcaSvc     = @()
 $Alertas_Bypass     = @()
-$Alertas_PowerShell = @()  # Se llenará en segundo plano para los archivos .txt
+$Alertas_PowerShell = @()
 $TotalLineasPS      = 0
 
-# Cabecera estética inicial en segundo plano
+# Cabecera estética inicial
 Write-Host "=========================================================================" -ForegroundColor DarkRed
-Write-Host "                      ABYZOTH SCAN v$Version (ULTRA ENGINE)                 " -ForegroundColor Red
+Write-Host "                      ABYZOTH SCAN v$Version (MAX DEPTH)                 " -ForegroundColor Red
 Write-Host "                       DESARROLLADO POR: IKXPZL                          " -ForegroundColor Yellow
 Write-Host "=========================================================================" -ForegroundColor DarkRed
-Write-Host "[+] Iniciando recolección de datos forenses en segundo plano..." -ForegroundColor Gray
+Write-Host "[+] Ejecutando minería forense extendida sin congelamiento..." -ForegroundColor Gray
 
 # =========================================================================
-# FASE 1: RECOLECCIÓN DE DATOS
+# FASE 1: RECOLECCIÓN DE DATOS (ÍNDICES LIMITADOS DE ALTA VELOCIDAD)
 # =========================================================================
 
-# MÓDULO 1: Auditoría de Eventos de Consola (ID 4688) - DETECCIÓN DE PYTHON POR COMANDOS
-$EventosSeguridad = Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4688} -ErrorAction SilentlyContinue
+# MÓDULO 1: Eventos de Consola (ID 4688) - BÚSQUEDA EXTENDIDA INDEXADA
+$EventosSeguridad = Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4688} -MaxEvents 200 -ErrorAction SilentlyContinue
 foreach ($Ev in $EventosSeguridad) {
     $LineaComando = $Ev.Message.ToLower()
     
@@ -69,8 +69,8 @@ foreach ($P in $TodosLosProcesos) {
     }
 }
 
-# MÓDULO 3: Telemetría Persistente de PcaSvc
-$EventosPca = Get-WinEvent -FilterHashtable @{LogName="Microsoft-Windows-Application-Experience/Program-Telemetry"; Id=100} -ErrorAction SilentlyContinue
+# MÓDULO 3: Telemetría Persistente de PcaSvc - ESCANEO EXTENDIDO INDEXADO
+$EventosPca = Get-WinEvent -FilterHashtable @{LogName="Microsoft-Windows-Application-Experience/Program-Telemetry"; Id=100} -MaxEvents 200 -ErrorAction SilentlyContinue
 foreach ($Ev in $EventosPca) {
     $MsgPca = $Ev.Message.ToLower()
     if ($MsgPca -match "\.bat" -or $MsgPca -match "cmd.exe" -or $MsgPca -match "temp" -or $MsgPca -match "meny" -or $MsgPca -match "\.py") {
@@ -78,14 +78,13 @@ foreach ($Ev in $EventosPca) {
     }
 }
 
-# MÓDULO EXTRA: Historial e Indexación Masiva de PowerShell (PSReadLine)
+# MÓDULO EXTRA: Historial ilimitado de PowerShell (PSReadLine)
 $RutaHistorialPS = "$env:appdata\Microsoft\Windows\PowerShell\PSReadline\ConsoleHost_history.txt"
 if (Test-Path $RutaHistorialPS) {
     $LineasHistorial = Get-Content -Path $RutaHistorialPS -ErrorAction SilentlyContinue
     if ($LineasHistorial) {
         $TotalLineasPS = $LineasHistorial.Count
         
-        # Inicializar el reporte aislado para el historial bruto
         @"
 =========================================================================
                ABYZOTH SECURITY ENGINE - CONSOLEHOST LOG                 
@@ -104,7 +103,6 @@ if (Test-Path $RutaHistorialPS) {
             $CmdLineLower = $CmdLine.ToLower()
             foreach ($Firma in $FirmasSospechosas) {
                 if ($CmdLineLower -like "*$Firma*") {
-                    # Se almacena en la variable interna para el .txt final
                     $Alertas_PowerShell += "[!] COMANDO SOSPECHOSO (Línea $Indice): $CmdLine"
                 }
             }
@@ -154,7 +152,7 @@ if (Test-Path $RutaBam) {
 }
 
 # =========================================================================
-# FASE 2: INTERFAZ VISUAL ORDENADA (RÉNDER COMPACTO EN PANTALLA)
+# FASE 2: INTERFAZ VISUAL ORDENADA (RÉNDER EN PANTALLA)
 # =========================================================================
 Clear-Host
 Write-Host "=========================================================================" -ForegroundColor DarkRed
@@ -184,15 +182,15 @@ if ($Alertas_Memoria.Count -gt 0) {
 
 # EXPOSICIÓN MÓDULO 3
 Write-Host "`n┌───────────────────────────────────────────────────────────────────────┐" -ForegroundColor Cyan
-Write-Host "│ [MÓDULO 3] HISTORIAL PERSISTENTE DE SCRIPTS .BAT (PCASVC TELEMETRY)   │" -ForegroundColor Cyan
-Write-Host "└───────────────────────────────────────────────────────────────────────┘" -ForegroundColor Cyan
+    Write-Host "│ [MÓDULO 3] HISTORIAL PERSISTENTE DE SCRIPTS .BAT (PCASVC TELEMETRY)   │" -ForegroundColor Cyan
+    Write-Host "└───────────────────────────────────────────────────────────────────────┘" -ForegroundColor Cyan
 if ($Alertas_PcaSvc.Count -gt 0) {
     foreach ($A in $Alertas_PcaSvc) { Write-Host " $A" -ForegroundColor Yellow }
 } else {
     Write-Host " [-] Telemetría limpia. Sin rastros de scripts de limpieza .bat recientes." -ForegroundColor Green
 }
 
-# EXPOSICIÓN MÓDULO EXTRA - ¡AHORA ULTRA COMPACTO EN CONSOLA!
+# EXPOSICIÓN MÓDULO EXTRA
 Write-Host "`n┌───────────────────────────────────────────────────────────────────────┐" -ForegroundColor Cyan
 Write-Host "│ [MÓDULO EXTRA] HISTORIAL DE COMANDOS MANUALES DE POWERSHELL           │" -ForegroundColor Cyan
 Write-Host "└───────────────────────────────────────────────────────────────────────┘" -ForegroundColor Cyan
