@@ -1,11 +1,11 @@
 # =========================================================================
-#  ABYZOTH SCAN v6.2.0 - Sistema Forense Avanzado y Motor Anti-Bypass
+#  ABYZOTH SCAN v6.3.0 - Sistema Forense Avanzado (Clean Console Fix)
 # =========================================================================
 #  Desarrollado por: IkxPzl
 #  Requisito: Ejecutar en una consola de PowerShell como Administrador.
 
 Clear-Host
-$Version = "6.2.0"
+$Version = "6.3.0"
 $FechaActual = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
 $RutaReporte = "$env:USERPROFILE\Desktop\Abyzoth_Scan_Report_$FechaActual.txt"
 $RutaReporteConsoleHost = "$env:USERPROFILE\Desktop\Abyzoth_ConsoleHost_Full_$FechaActual.txt"
@@ -19,10 +19,10 @@ $Alertas_Comandos   = @()
 $Alertas_Memoria    = @()
 $Alertas_PcaSvc     = @()
 $Alertas_Bypass     = @()
-$Alertas_PowerShell = @()
+$Alertas_PowerShell = @()  # Se llenará en segundo plano para los archivos .txt
 $TotalLineasPS      = 0
 
-# Cabecera estética inicial
+# Cabecera estética inicial en segundo plano
 Write-Host "=========================================================================" -ForegroundColor DarkRed
 Write-Host "                      ABYZOTH SCAN v$Version (ULTRA ENGINE)                 " -ForegroundColor Red
 Write-Host "                       DESARROLLADO POR: IKXPZL                          " -ForegroundColor Yellow
@@ -104,6 +104,7 @@ if (Test-Path $RutaHistorialPS) {
             $CmdLineLower = $CmdLine.ToLower()
             foreach ($Firma in $FirmasSospechosas) {
                 if ($CmdLineLower -like "*$Firma*") {
+                    # Se almacena en la variable interna para el .txt final
                     $Alertas_PowerShell += "[!] COMANDO SOSPECHOSO (Línea $Indice): $CmdLine"
                 }
             }
@@ -121,7 +122,7 @@ if ($ContadorPf -lt 15) {
     $Alertas_Bypass += "[!!!] ACCIÓN EVASIVA: Carpeta Prefetch vaciada recientemente. Solo quedan $ContadorPf archivos."
 }
 
-# MÓDULO 4 (PARTE B): Cruce de Datos BAM - CAZA DEFINITIVA DE BYPASS DE .PY POR DOBLE CLIC
+# MÓDULO 4 (PARTE B): Cruce de Datos BAM
 $RutaBam = "HKLM:\SYSTEM\CurrentControlSet\Services\bam\State\UserSettings"
 if (Test-Path $RutaBam) {
     $SubClavesBam = Get-ChildItem -Path $RutaBam
@@ -140,7 +141,6 @@ if (Test-Path $RutaBam) {
                     if (-not $Ignorar) {
                         foreach ($Firma in $FirmasSospechosas) {
                             if ($RutaNormalizada -like "*$Firma*") {
-                                # Si el script .py o binario fue ejecutado (Doble clic, wrapper, etc.) pero ya NO existe en disco
                                 if (-not (Test-Path $Propiedad.Name -ErrorAction SilentlyContinue)) {
                                     $Alertas_Bypass += "[!] EVASIÓN BAM: El archivo de patrón [$Firma] fue ejecutado y posteriormente BORRADO: $($Propiedad.Name)"
                                 }
@@ -154,7 +154,7 @@ if (Test-Path $RutaBam) {
 }
 
 # =========================================================================
-# FASE 2: INTERFAZ VISUAL ORDENADA (RÉNDER EN PANTALLA)
+# FASE 2: INTERFAZ VISUAL ORDENADA (RÉNDER COMPACTO EN PANTALLA)
 # =========================================================================
 Clear-Host
 Write-Host "=========================================================================" -ForegroundColor DarkRed
@@ -192,13 +192,15 @@ if ($Alertas_PcaSvc.Count -gt 0) {
     Write-Host " [-] Telemetría limpia. Sin rastros de scripts de limpieza .bat recientes." -ForegroundColor Green
 }
 
-# EXPOSICIÓN MÓDULO EXTRA
+# EXPOSICIÓN MÓDULO EXTRA - ¡AHORA ULTRA COMPACTO EN CONSOLA!
 Write-Host "`n┌───────────────────────────────────────────────────────────────────────┐" -ForegroundColor Cyan
 Write-Host "│ [MÓDULO EXTRA] HISTORIAL DE COMANDOS MANUALES DE POWERSHELL           │" -ForegroundColor Cyan
 Write-Host "└───────────────────────────────────────────────────────────────────────┘" -ForegroundColor Cyan
-Write-Host " [+] Volumen de historial detectado: $TotalLineasPS líneas encontradas analizadas." -ForegroundColor Gray
+Write-Host " [+] Volumen total en historial: $TotalLineasPS líneas analizadas en segundo plano." -ForegroundColor Gray
 if ($Alertas_PowerShell.Count -gt 0) {
-    foreach ($A in $Alertas_PowerShell) { Write-Host " $A" -ForegroundColor DarkYellow }
+    $NumAlertas = $Alertas_PowerShell.Count
+    Write-Host " [!] ADVERTENCIA: Se encontraron $NumAlertas comandos que coinciden con firmas de riesgo." -ForegroundColor DarkYellow
+    Write-Host "     Las líneas sospechosas detalladas se exportaron directamente al reporte .txt." -ForegroundColor Gray
 } else {
     Write-Host " [-] Historial de comandos limpio de firmas sospechosas." -ForegroundColor Green
 }
