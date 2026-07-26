@@ -1,0 +1,205 @@
+# =========================================================================
+#  IKXPZL SCAN - Herramienta de Automatización Forense para Screenshare
+# =========================================================================
+#  Desarrollado por: Abyzoth
+#  Requisito: Ejecutar en una consola de PowerShell como Administrador.
+
+Clear-Host
+$Version = "1.3.5"
+$FechaActual = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
+$RutaReporte = "$env:USERPROFILE\Desktop\IkxPzl_Scan_Report_$FechaActual.txt"
+
+# Función interna para escribir en consola y guardar en el txt al mismo tiempo con hora
+function Escribir-Log {
+    param (
+        [string]$Mensaje,
+        [System.ConsoleColor]$Color = "White",
+        [bool]$EsAlerta = $false
+    )
+    $Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $Prefijo = "[$Timestamp] "
+    
+    # Imprimir en consola con color
+    Write-Host "$Prefijo$Mensaje" -ForegroundColor $Color
+    
+    # Formatear y guardar en el archivo de texto
+    if ($EsAlerta) {
+        Add-Content -Path $RutaReporte -Value "[ALERTA] $Prefijo$Mensaje"
+    } else {
+        Add-Content -Path $RutaReporte -Value "$Prefijo$Mensaje"
+    }
+}
+
+# Inicializar archivo de reporte
+@"
+==================================================
+               IKXPZL SCAN v$Version              
+       REPORTE OFICIAL DE ANÁLISIS DE SS         
+==================================================
+Desarrollado por: Abyzoth
+Fecha de ejecución: $(Get-Date -Format "dd/MM/yyyy HH:mm:ss")
+Usuario actual: $env:USERNAME
+Equipo: $env:COMPUTERNAME
+--------------------------------------------------
+
+"@ | Out-File -FilePath $RutaReporte -Encoding utf8
+
+Write-Host "==================================================" -ForegroundColor Cyan
+Write-Host "               IKXPZL SCAN v$Version              " -ForegroundColor Cyan
+Write-Host "               DEVELOPED BY: ABYZOTH              " -ForegroundColor Red
+Write-Host "         [ ANTI-BYPASS & SECURITY ENGINE ]        " -ForegroundColor Yellow
+Write-Host "==================================================" -ForegroundColor Cyan
+Escribir-Log "Iniciando análisis profundo y expandido del sistema..." "Gray"
+
+# -------------------------------------------------------------------------
+# DICCIONARIOS DE INVESTIGACIÓN AVANZADA (GRABADORAS / BYPASS / STRINGS)
+# -------------------------------------------------------------------------
+$FfmpegStrings = @(
+    "ffmpeg", "grabadora", "record", "stream", "obs", "d3d", "capture", 
+    "zen", "mozilla", "firefox", "file:", "medal", "action", "bandicam", 
+    "sharex", "vlc", "lightshot", "overwolf", "shadowplay", "relive", 
+    "screen", "recorder", "overlay", "injector", "temp"
+)
+$AhkStrings = @("macro", "trigger", "recoil", "aim", "cheat", "bhop", "script", "hotkey")
+
+# -------------------------------------------------------------------------
+# MÓDULO 1: Ejecuciones de Python y Rutas Sospechosas (Event Logs)
+# -------------------------------------------------------------------------
+Escribir-Log "Analizando ejecuciones, telemetría de Python y procesos del sistema..." "Yellow"
+
+$SecurityEvents = Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4688} -ErrorAction SilentlyContinue
+
+$AlertaDetectada = $false
+foreach ($Event in $SecurityEvents) {
+    $MessageLower = $Event.Message.ToLower()
+    
+    if ($MessageLower -match "python" -or $MessageLower -match "cmd.exe" -or $MessageLower -match "powershell.exe") {
+        foreach ($String in $FfmpegStrings) {
+            if ($MessageLower -like "*$String*") {
+                $HoraEvento = $Event.TimeCreated.ToString("yyyy-MM-dd HH:mm:ss")
+                Escribir-Log "Patrón crítico detectado en línea de comandos: '$String' [Hora Evento: $HoraEvento]" "Red" $true
+                Add-Content -Path $RutaReporte -Value "       Detalles del Comando: $($Event.Message -replace '\s+', ' ')"
+                $AlertaDetectada = $true
+            }
+        }
+    }
+}
+
+if (-not $AlertaDetectada) {
+    Escribir-Log "No se encontraron anomalías directas en los registros de comandos activos." "Green"
+}
+
+# -------------------------------------------------------------------------
+# MÓDULO 2: Monitoreo de Procesos en Tiempo Real (Zen, Mozilla, Grabadoras)
+# -------------------------------------------------------------------------
+Escribir-Log "Escaneando procesos activos en memoria (Zen, Mozilla, Capturadoras)..." "Yellow"
+
+$ProcesosSospechosos = Get-Process | Where-Object {
+    $_.Name -match "zen" -or 
+    $_.Name -match "firefox" -or 
+    $_.Name -match "obs" -or 
+    $_.Name -match "medal" -or 
+    $_.Name -match "ShareX" -or
+    $_.Name -match "AutoHotkey"
+}
+
+foreach ($Proc in $ProcesosSospechosos) {
+    try {
+        $Path = $Proc.Path
+    } catch {
+        $Path = "Acceso Denegado / Oculto en Memoria"
+    }
+    Escribir-Log "PROCESO ACTIVO ENCONTRADO: $($Proc.Name) (PID: $($Proc.Id))" "DarkYellow" $true
+    Add-Content -Path $RutaReporte -Value "       Ruta del ejecutable: $Path"
+}
+
+# Buscar accesos o scripts .ahk / .py abiertos recientemente por el usuario
+$RecentFiles = Get-ChildItem "$env:USERPROFILE\AppData\Roaming\Microsoft\Windows\Recent" -ErrorAction SilentlyContinue |
+    Where-Object { $_.Name -match "\.ahk" -or $_.Name -match "\.py" -or $_.Name -match "zen" -or $_.Name -match "mozilla" }
+
+foreach ($File in $RecentFiles) {
+    $HoraModificacion = $File.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss")
+    Escribir-Log "Archivo sospechoso en historial reciente: $($File.Name) [Modificado: $HoraModificacion]" "Magenta" $true
+}
+
+# -------------------------------------------------------------------------
+# MÓDULO 3: Ejecuciones de .bat usando PcaSvc (Program Compatibility)
+# -------------------------------------------------------------------------
+Escribir-Log "Investigando telemetría persistente de PcaSvc (Logs de scripts .bat)..." "Yellow"
+
+$PcaLogPath = "Microsoft-Windows-Application-Experience/Program-Telemetry"
+$PcaEvents = Get-WinEvent -FilterHashtable @{LogName=$PcaLogPath; Id=100} -ErrorAction SilentlyContinue
+$PcaDetectado = $false
+
+foreach ($Event in $PcaEvents) {
+    $EventMsg = $Event.Message.ToLower()
+    if ($EventMsg -match "\.bat" -or $EventMsg -match "cmd.exe" -or $EventMsg -match "temp") {
+        $HoraPca = $Event.TimeCreated.ToString("yyyy-MM-dd HH:mm:ss")
+        Escribir-Log "Script o ejecutable temporal registrado por PcaSvc [Hora: $HoraPca]" "DarkYellow" $true
+        Add-Content -Path $RutaReporte -Value "       Datos del Evento: $($Event.Message -replace '\s+', ' ')"
+        $PcaDetectado = $true
+    }
+}
+
+if (-not $PcaDetectado) {
+    Escribir-Log "Limpio. No se registraron scripts persistentes anómalos en PcaSvc." "Green"
+}
+
+# -------------------------------------------------------------------------
+# MÓDULO 4: Detección Avanzada de Bypasses (Prefetch y BAM Expandido)
+# -------------------------------------------------------------------------
+Escribir-Log "Verificando evasiones e integridad de Prefetch y BAM..." "Yellow"
+
+# A. Estado del Prefetcher en el Registro
+$PrefetchRegistry = Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters" -Name "EnablePrefetcher" -ErrorAction SilentlyContinue
+if ($PrefetchRegistry -and $PrefetchRegistry.EnablePrefetcher -eq 0) {
+    Escribir-Log "El Prefetcher está APAGADO (Valor 0) en el Registro. Bypass inminente." "Red" $true
+} else {
+    Escribir-Log "Estado del servicio Prefetcher: Activo y Correcto." "Green"
+}
+
+# B. Conteo y posible vaciado del directorio Prefetch
+$PrefetchCount = (Get-ChildItem -Path "$env:SystemRoot\Prefetch" -Filter "*.pf" -ErrorAction SilentlyContinue).Count
+if ($PrefetchCount -lt 15) {
+    Escribir-Log "La carpeta Prefetch tiene solo $PrefetchCount archivos. Evidencia clara de limpieza manual." "Red" $true
+} else {
+    Escribir-Log "Volumen de archivos Prefetch normal ($PrefetchCount elementos)." "Green"
+}
+
+# C. Análisis Forense de Inconsistencia en BAM (Búsqueda exhaustiva de archivos fantasma)
+Escribir-Log "Analizando registros BAM buscando archivos ejecutados y posteriormente eliminados..." "Gray"
+$BamPath = "HKLM:\SYSTEM\CurrentControlSet\Services\bam\State\UserSettings"
+$GhostFilesCount = 0
+
+if (Test-Path $BamPath) {
+    $SubKeys = Get-ChildItem -Path $BamPath
+    foreach ($Key in $SubKeys) {
+        $UserValues = Get-ItemProperty -Path $Key.PSPath
+        foreach ($Value in $UserValues.PSObject.Properties) {
+            if ($Value.Name -match "\.exe|\.bat|\.py|\.ahk") {
+                $ContieneTermino = $false
+                foreach ($Termino in $FfmpegStrings) {
+                    if ($Value.Name.ToLower() -like "*$Termino*") { $ContieneTermino = $true }
+                }
+
+                if ($ContieneTermino -and -not (Test-Path $Value.Name -ErrorAction SilentlyContinue)) {
+                    Escribir-Log "EVASIÓN DETECTADA EN BAM: Se ejecutó software relacionado con ($Termino) pero fue ELIMINADO del disco: $($Value.Name)" "Red" $true
+                    $GhostFilesCount++
+                }
+            }
+        }
+    }
+}
+
+if ($GhostFilesCount -eq 0) {
+    Escribir-Log "No se encontraron discrepancias de archivos eliminados en BAM." "Green"
+}
+
+# -------------------------------------------------------------------------
+# Cierre de la Herramienta
+# -------------------------------------------------------------------------
+Escribir-Log "Análisis expandido completado con éxito." "Cyan"
+Write-Host "`n==================================================" -ForegroundColor Cyan
+Write-Host " REPORTE GENERADO EN EL ESCRITORIO POR ABYZOTH:" -ForegroundColor Yellow
+Write-Host " $RutaReporte" -ForegroundColor White
+Write-Host "==================================================" -ForegroundColor Cyan
