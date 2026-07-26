@@ -5,7 +5,7 @@
 #  Requisito: Ejecutar en una consola de PowerShell como Administrador.
 
 Clear-Host
-$Version = "2.2.0"
+$Version = "2.2.1"
 $FechaActual = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
 $RutaReporte = "$env:USERPROFILE\Desktop\Abyzoth_Scan_Report_$FechaActual.txt"
 
@@ -185,21 +185,26 @@ if (Test-Path $BamPath) {
                 # Comprobar si la ruta pertenece a una aplicación excluida
                 $EsExcluido = $false
                 foreach ($Pattern in $WhitelistPaths) {
-                    if ($FilePathLower -like "*$Pattern*") { $EsExcluido = $true }
+                    if ($FilePathLower -like "*$Pattern*") { 
+                        $EsExcluido = $true 
+                    }
                 }
                 
                 if (-not $EsExcluido) {
                     $ContieneTermino = $false
                     foreach ($Termino in $FfmpegStrings) {
+                    foreach ($Termino in $FfmpegStrings) {
                         if ($FilePathLower -like "*$Termino*") { 
-                    $ContieneTermino = $true
-                    $TerminoDetectado = $Termino
-                }
+                            $ContieneTermino = $true
+                            $TerminoDetectado = $Termino
+                        }
+                    }
 
-                # Si el archivo está en BAM pero fue eliminado físicamente del disco y no está excluido
-                if ($ContieneTermino -and -not (Test-Path $Value.Name -ErrorAction SilentlyContinue)) {
-                    Escribir-Log "[!] ARCHIVO FANTASMA (BAM): Ejecutado y eliminado del disco -> [$TerminoDetectado] en: $($Value.Name)" "Red" $true
-                    $GhostFilesCount++
+                    # Si el archivo está en BAM pero fue eliminado físicamente del disco y no está excluido
+                    if ($ContieneTermino -and -not (Test-Path $Value.Name -ErrorAction SilentlyContinue)) {
+                        Escribir-Log "[!] ARCHIVO FANTASMA (BAM): Ejecutado y eliminado del disco -> [$TerminoDetectado] en: $($Value.Name)" "Red" $true
+                        $GhostFilesCount++
+                    }
                 }
             }
         }
