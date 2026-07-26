@@ -1,5 +1,5 @@
 # =========================================================================
-#  ABYZOTH SCAN v5.0.4 - Sistema Forense por Índices (Python Absolute Fix)
+#  ABYZOTH SCAN v5.0.5 - Sistema Forense por Índices (Python Command Fix)
 # =========================================================================
 #  Desarrollado por: IkxPzl
 #  Requisito: Ejecutar en una consola de PowerShell como Administrador.
@@ -9,7 +9,7 @@ $FechaActual = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
 $RutaReporte = "$env:USERPROFILE\Desktop\Abyzoth_Scan_Report_$FechaActual.txt"
 
 # 1. ARREGLOS DE CONTROL (LISTAS DE BÚSQUEDA Y EXCLUSIÓN)
-$FirmasSospechosas = @("ffmpeg", "grabadora", "record", "stream", "obs", "d3d", "capture", "zen", "mozilla", "firefox", "file:", "medal", "action", "bandicam", "sharex", "vlc", "lightshot", "overwolf", "shadowplay", "relive", "screen", "recorder", "overlay", "injector", "temp", "macro", "trigger", "recoil", "aim", "cheat", "bhop", "script", "hotkey", "psr", "meny.py", "menu.py", ".py")
+$FirmasSospechosas = @("ffmpeg", "grabadora", "record", "stream", "obs", "d3d", "capture", "zen", "mozilla", "firefox", "file:", "medal", "action", "bandicam", "sharex", "vlc", "lightshot", "overwolf", "shadowplay", "relive", "screen", "recorder", "overlay", "injector", "temp", "macro", "trigger", "recoil", "aim", "cheat", "bhop", "script", "hotkey", "psr")
 $Exclusiones       = @("roblox", "overwolf", "nvidia", "discord", "spotify", "steam", "epicgames", "microsoft")
 
 # 2. CONTENEDORES DE ALERTAS (ESTRUCTURA DE ALMACENAMIENTO PLANA)
@@ -20,7 +20,7 @@ $Alertas_Bypass   = @()
 
 # Cabecera estética inicial
 Write-Host "=========================================================================" -ForegroundColor DarkRed
-Write-Host "                      ABYZOTH SCAN (NUEVO MOTOR PYTHON)                  " -ForegroundColor Red
+Write-Host "                      ABYZOTH SCAN (PYTHON STRINGS FIX)                  " -ForegroundColor Red
 Write-Host "                       DESARROLLADO POR: IKXPZL                          " -ForegroundColor Yellow
 Write-Host "=========================================================================" -ForegroundColor DarkRed
 Write-Host "[+] Iniciando recolección de datos en segundo plano..." -ForegroundColor Gray
@@ -34,20 +34,19 @@ $EventosSeguridad = Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4688}
 foreach ($Ev in $EventosSeguridad) {
     $LineaComando = $Ev.Message.ToLower()
     
-    # Detección absoluta: intercepta si se invoca el intérprete o si se nombra el script directamente
-    if ($LineaComando -match "python" -or $LineaComando -match "\.py" -or $LineaComando -match "meny") {
+    # Detección absoluta: intercepta si se invoca el intérprete de Python
+    if ($LineaComando -match "python" -or $LineaComando -match "\.py") {
         $HoraEv = $Ev.TimeCreated.ToString('HH:mm:ss')
-        $Alertas_Comandos += "[!] DETECTADO: Actividad / Parámetro de Python a las -> $HoraEv"
-        $Alertas_Comandos += "    └─ Comando completo: $($Ev.Message -replace '\s+', ' ')"
         
-        # Clasificación interna del riesgo por strings sospechosas
+        # Escaneo profundo de argumentos sospechosos dentro de la línea de comandos de Python
         foreach ($Firma in $FirmasSospechosas) {
             if ($LineaComando -like "*$Firma*") {
-                $Alertas_Comandos += "       [!] ALERTA CRÍTICA: Coincidencia con firma de riesgo -> '$Firma'"
+                $Alertas_Comandos += "[!] ALERTA PYTHON ($HoraEv): Detectado uso de '$Firma' en la ejecución."
+                $Alertas_Comandos += "    └─ Comando completo: $($Ev.Message -replace '\s+', ' ')"
             }
         }
     }
-    # Rastreo para consolas nativas independientes
+    # Rastreo secundario para consolas de comandos genéricas
     elseif ($LineaComando -match "cmd\.exe" -or $LineaComando -match "powershell\.exe") {
         foreach ($Firma in $FirmasSospechosas) {
             if ($LineaComando -like "*$Firma*") {
@@ -72,7 +71,7 @@ foreach ($P in $TodosLosProcesos) {
 $EventosPca = Get-WinEvent -FilterHashtable @{LogName="Microsoft-Windows-Application-Experience/Program-Telemetry"; Id=100} -ErrorAction SilentlyContinue
 foreach ($Ev in $EventosPca) {
     $MsgPca = $Ev.Message.ToLower()
-    if ($MsgPca -match "\.bat" -or $MsgPca -match "cmd.exe" -or $MsgPca -match "temp" -or $MsgPca -match "meny" -or $MsgPca -match "\.py") {
+    if ($MsgPca -match "\.bat" -or $MsgPca -match "cmd.exe" -or $MsgPca -match "temp" -or $MsgPca -match "\.py") {
         $Alertas_PcaSvc += "[!] REGISTRO PCASVC ($($Ev.TimeCreated.ToString('HH:mm:ss'))): Script/Comando -> $($Ev.Message -replace '\s+', ' ')"
     }
 }
@@ -123,7 +122,7 @@ if (Test-Path $RutaBam) {
 # =========================================================================
 Clear-Host
 Write-Host "=========================================================================" -ForegroundColor DarkRed
-Write-Host "                         ABYZOTH SCAN v5.0.4                             " -ForegroundColor Red
+Write-Host "                         ABYZOTH SCAN v5.0.5                             " -ForegroundColor Red
 Write-Host "                       DESARROLLADO POR: IKXPZL                          " -ForegroundColor Yellow
 Write-Host "=========================================================================" -ForegroundColor DarkRed
 
