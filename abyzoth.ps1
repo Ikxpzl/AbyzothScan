@@ -1,7 +1,7 @@
 # =========================================================================
 #  ABYZOTH SCAN v6.5.0 - Sistema Forense Ampliado de Alta Velocidad
 # =========================================================================
-#  Desarrollado por: IkxPzl (Rediseño Estético y Corrección de Bugs)
+#  Desarrollado por: IkxPzl (Rediseño Estético, Corrección de Errores y Erratas)
 #  Requisito: Ejecutar en una consola de PowerShell como Administrador.
 
 Clear-Host
@@ -109,7 +109,7 @@ if (Test-Path $RutaHistorialPS) {
             $CmdLineLower = $CmdLine.ToLower()
             foreach ($Firma in $FirmasSospechosas) {
                 if ($CmdLineLower -like "*$Firma*") {
-                    # Corrección: El índice ahora coincide exactamente con el número de línea analizado
+                    # Corrección de índice: Sincronizado exactamente con el número de línea analizado
                     $Alertas_PowerShell += "[!] HISTORIAL (Línea $Indice) -> Comando sospechoso: $CmdLine"
                 }
             }
@@ -149,7 +149,7 @@ if (Test-Path $RutaBam) {
                     if (-not $Ignorar) {
                         foreach ($Firma in $FirmasSospechosas) {
                             if ($RutaNormalizada -like "*$Firma*") {
-                                # Corrección: Limpieza del prefijo nativo del registro para evitar fallos de comprobación en Test-Path
+                                # Corrección: Limpieza del prefijo del registro para evitar fallos en Test-Path
                                 $RutaLimpia = $Propiedad.Name -replace '\\\\\?\\', ''
                                 if (-not (Test-Path $RutaLimpia -ErrorAction SilentlyContinue)) {
                                     $Alertas_Bypass += "[!] DESTRUCCIÓN DE EVIDENCIA (BAM) -> Archivo patrón [$Firma] fue ejecutado y eliminado posteriormente: $RutaLimpia"
