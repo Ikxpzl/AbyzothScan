@@ -1,15 +1,15 @@
 # =========================================================================
-#  IKXPZL SCAN - Herramienta de Automatización Forense para Screenshare
+#  ABYZOTH SCAN - Sistema de Auditoría Forense y Anti-Bypass para SS
 # =========================================================================
-#  Desarrollado por: Abyzoth
+#  Desarrollado por: IkxPzl
 #  Requisito: Ejecutar en una consola de PowerShell como Administrador.
 
 Clear-Host
-$Version = "1.3.5"
+$Version = "2.2.0"
 $FechaActual = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
-$RutaReporte = "$env:USERPROFILE\Desktop\IkxPzl_Scan_Report_$FechaActual.txt"
+$RutaReporte = "$env:USERPROFILE\Desktop\Abyzoth_Scan_Report_$FechaActual.txt"
 
-# Función interna para escribir en consola y guardar en el txt al mismo tiempo con hora
+# Función de formateo e impresión unificada (Consola + TXT)
 function Escribir-Log {
     param (
         [string]$Mensaje,
@@ -19,10 +19,8 @@ function Escribir-Log {
     $Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     $Prefijo = "[$Timestamp] "
     
-    # Imprimir en consola con color
     Write-Host "$Prefijo$Mensaje" -ForegroundColor $Color
     
-    # Formatear y guardar en el archivo de texto
     if ($EsAlerta) {
         Add-Content -Path $RutaReporte -Value "[ALERTA] $Prefijo$Mensaje"
     } else {
@@ -30,30 +28,27 @@ function Escribir-Log {
     }
 }
 
-# Inicializar archivo de reporte
+# Inicialización estética del archivo físico de reporte
 @"
-==================================================
-               IKXPZL SCAN v$Version              
-       REPORTE OFICIAL DE ANÁLISIS DE SS         
-==================================================
-Desarrollado por: Abyzoth
-Fecha de ejecución: $(Get-Date -Format "dd/MM/yyyy HH:mm:ss")
-Usuario actual: $env:USERNAME
-Equipo: $env:COMPUTERNAME
---------------------------------------------------
+=========================================================================
+                         ABYZOTH SCAN v$Version                          
+=========================================================================
+ Desarrollado por   : IkxPzl
+ Fecha de Análisis  : $(Get-Date -Format "dd/MM/yyyy HH:mm:ss")
+ Operador de la SS  : $env:USERNAME
+ Dispositivo Local  : $env:COMPUTERNAME
+=========================================================================
 
 "@ | Out-File -FilePath $RutaReporte -Encoding utf8
 
-Write-Host "==================================================" -ForegroundColor Cyan
-Write-Host "               IKXPZL SCAN v$Version              " -ForegroundColor Cyan
-Write-Host "               DEVELOPED BY: ABYZOTH              " -ForegroundColor Red
-Write-Host "         [ ANTI-BYPASS & SECURITY ENGINE ]        " -ForegroundColor Yellow
-Write-Host "==================================================" -ForegroundColor Cyan
-Escribir-Log "Iniciando análisis profundo y expandido del sistema..." "Gray"
+# Cabecera estética en la consola de comandos
+Write-Host "=========================================================================" -ForegroundColor DarkRed
+Write-Host "                             ABYZOTH SCAN v$Version                       " -ForegroundColor Red
+Write-Host "                       DESARROLLADO POR: IKXPZL                          " -ForegroundColor Yellow
+Write-Host "=========================================================================" -ForegroundColor DarkRed
+Escribir-Log "Inicializando los motores forenses..." "Gray"
 
-# -------------------------------------------------------------------------
-# DICCIONARIOS DE INVESTIGACIÓN AVANZADA (GRABADORAS / BYPASS / STRINGS)
-# -------------------------------------------------------------------------
+# Diccionarios expandidos de firmas y palabras clave
 $FfmpegStrings = @(
     "ffmpeg", "grabadora", "record", "stream", "obs", "d3d", "capture", 
     "zen", "mozilla", "firefox", "file:", "medal", "action", "bandicam", 
@@ -62,23 +57,27 @@ $FfmpegStrings = @(
 )
 $AhkStrings = @("macro", "trigger", "recoil", "aim", "cheat", "bhop", "script", "hotkey")
 
+# Lista de exclusión inteligente para evitar falsos positivos de apps comunes
+$WhitelistPaths = @("roblox", "overwolf", "nvidia", "discord", "spotify")
+
 # -------------------------------------------------------------------------
-# MÓDULO 1: Ejecuciones de Python y Rutas Sospechosas (Event Logs)
+# MÓDULO 1: TELEMETRÍA DE PYTHON Y REGISTRO DE COMANDOS
 # -------------------------------------------------------------------------
-Escribir-Log "Analizando ejecuciones, telemetría de Python y procesos del sistema..." "Yellow"
+Write-Host "`n-------------------------------------------------------------------------" -ForegroundColor Gray
+Escribir-Log "[MÓDULO 1] Analizando historial de líneas de comandos (Python / Shell)..." "Cyan"
+Write-Host "-------------------------------------------------------------------------" -ForegroundColor Gray
 
 $SecurityEvents = Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4688} -ErrorAction SilentlyContinue
-
 $AlertaDetectada = $false
+
 foreach ($Event in $SecurityEvents) {
     $MessageLower = $Event.Message.ToLower()
-    
     if ($MessageLower -match "python" -or $MessageLower -match "cmd.exe" -or $MessageLower -match "powershell.exe") {
         foreach ($String in $FfmpegStrings) {
             if ($MessageLower -like "*$String*") {
                 $HoraEvento = $Event.TimeCreated.ToString("yyyy-MM-dd HH:mm:ss")
-                Escribir-Log "Patrón crítico detectado en línea de comandos: '$String' [Hora Evento: $HoraEvento]" "Red" $true
-                Add-Content -Path $RutaReporte -Value "       Detalles del Comando: $($Event.Message -replace '\s+', ' ')"
+                Escribir-Log "[!] CRÍTICO: Comando sospechoso detectado -> '$String' [Hora: $HoraEvento]" "Red" $true
+                Add-Content -Path $RutaReporte -Value "    └─ Detalle Técnico: $($Event.Message -replace '\s+', ' ')"
                 $AlertaDetectada = $true
             }
         }
@@ -86,46 +85,48 @@ foreach ($Event in $SecurityEvents) {
 }
 
 if (-not $AlertaDetectada) {
-    Escribir-Log "No se encontraron anomalías directas en los registros de comandos activos." "Green"
+    Escribir-Log "[-] Limpio: No se hallaron anomalías en la telemetría de comandos." "Green"
 }
 
 # -------------------------------------------------------------------------
-# MÓDULO 2: Monitoreo de Procesos en Tiempo Real (Zen, Mozilla, Grabadoras)
+# MÓDULO 2: PROCESOS EN MEMORIA E HISTORIAL DE ACCESOS DIRECTOS
 # -------------------------------------------------------------------------
-Escribir-Log "Escaneando procesos activos en memoria (Zen, Mozilla, Capturadoras)..." "Yellow"
+Write-Host "`n-------------------------------------------------------------------------" -ForegroundColor Gray
+Escribir-Log "[MÓDULO 2] Inspeccionando memoria volátil e historiales recientes..." "Cyan"
+Write-Host "-------------------------------------------------------------------------" -ForegroundColor Gray
 
 $ProcesosSospechosos = Get-Process | Where-Object {
-    $_.Name -match "zen" -or 
-    $_.Name -match "firefox" -or 
-    $_.Name -match "obs" -or 
-    $_.Name -match "medal" -or 
-    $_.Name -match "ShareX" -or
-    $_.Name -match "AutoHotkey"
+    $_.Name -match "zen" -or $_.Name -match "firefox" -or $_.Name -match "obs" -or 
+    $_.Name -match "medal" -or $_.Name -match "ShareX" -or $_.Name -match "AutoHotkey"
 }
 
+$ProcesoActivo = $false
 foreach ($Proc in $ProcesosSospechosos) {
-    try {
-        $Path = $Proc.Path
-    } catch {
-        $Path = "Acceso Denegado / Oculto en Memoria"
-    }
-    Escribir-Log "PROCESO ACTIVO ENCONTRADO: $($Proc.Name) (PID: $($Proc.Id))" "DarkYellow" $true
-    Add-Content -Path $RutaReporte -Value "       Ruta del ejecutable: $Path"
+    try { $Path = $Proc.Path } catch { $Path = "Acceso Denegado / Binario Oculto" }
+    Escribir-Log "[!] PROCESO ACTIVO: Se está ejecutando '$($Proc.Name)' (PID: $($Proc.Id))" "DarkYellow" $true
+    Add-Content -Path $RutaReporte -Value "    └─ Ubicación: $Path"
+    $ProcesoActivo = $true
 }
 
-# Buscar accesos o scripts .ahk / .py abiertos recientemente por el usuario
+if (-not $ProcesoActivo) {
+    Escribir-Log "[-] Limpio: No hay aplicaciones de captura o macros corriendo en memoria." "Green"
+}
+
+# Historial reciente de archivos abiertos (.ahk / .py)
 $RecentFiles = Get-ChildItem "$env:USERPROFILE\AppData\Roaming\Microsoft\Windows\Recent" -ErrorAction SilentlyContinue |
     Where-Object { $_.Name -match "\.ahk" -or $_.Name -match "\.py" -or $_.Name -match "zen" -or $_.Name -match "mozilla" }
 
 foreach ($File in $RecentFiles) {
     $HoraModificacion = $File.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss")
-    Escribir-Log "Archivo sospechoso en historial reciente: $($File.Name) [Modificado: $HoraModificacion]" "Magenta" $true
+    Escribir-Log "[!] HISTORIAL: Archivo abierto recientemente -> $($File.Name) [Modificado: $HoraModificacion]" "Magenta" $true
 }
 
 # -------------------------------------------------------------------------
-# MÓDULO 3: Ejecuciones de .bat usando PcaSvc (Program Compatibility)
+# MÓDULO 3: PERSISTENCIA DE SCRIPTS (.BAT) VÍA PCASVC
 # -------------------------------------------------------------------------
-Escribir-Log "Investigando telemetría persistente de PcaSvc (Logs de scripts .bat)..." "Yellow"
+Write-Host "`n-------------------------------------------------------------------------" -ForegroundColor Gray
+Escribir-Log "[MÓDULO 3] Extrayendo logs imborrables de PcaSvc (Program Telemetry)..." "Cyan"
+Write-Host "-------------------------------------------------------------------------" -ForegroundColor Gray
 
 $PcaLogPath = "Microsoft-Windows-Application-Experience/Program-Telemetry"
 $PcaEvents = Get-WinEvent -FilterHashtable @{LogName=$PcaLogPath; Id=100} -ErrorAction SilentlyContinue
@@ -135,39 +136,41 @@ foreach ($Event in $PcaEvents) {
     $EventMsg = $Event.Message.ToLower()
     if ($EventMsg -match "\.bat" -or $EventMsg -match "cmd.exe" -or $EventMsg -match "temp") {
         $HoraPca = $Event.TimeCreated.ToString("yyyy-MM-dd HH:mm:ss")
-        Escribir-Log "Script o ejecutable temporal registrado por PcaSvc [Hora: $HoraPca]" "DarkYellow" $true
-        Add-Content -Path $RutaReporte -Value "       Datos del Evento: $($Event.Message -replace '\s+', ' ')"
+        Escribir-Log "[!] HISTORIAL PCASVC: Script o comando ejecutado en segundo plano [Hora: $HoraPca]" "DarkYellow" $true
+        Add-Content -Path $RutaReporte -Value "    └─ Firma del Evento: $($Event.Message -replace '\s+', ' ')"
         $PcaDetectado = $true
     }
 }
 
 if (-not $PcaDetectado) {
-    Escribir-Log "Limpio. No se registraron scripts persistentes anómalos en PcaSvc." "Green"
+    Escribir-Log "[-] Limpio: El registro persistente de PcaSvc no muestra scripts sospechosos." "Green"
 }
 
 # -------------------------------------------------------------------------
-# MÓDULO 4: Detección Avanzada de Bypasses (Prefetch y BAM Expandido)
+# MÓDULO 4: ANÁLISIS DE EVASIONES E INTEGRIDAD (PREFETCH Y BAM)
 # -------------------------------------------------------------------------
-Escribir-Log "Verificando evasiones e integridad de Prefetch y BAM..." "Yellow"
+Write-Host "`n-------------------------------------------------------------------------" -ForegroundColor Gray
+Escribir-Log "[MÓDULO 4] Buscando signos de manipulación del sistema (Prefetch / BAM)..." "Cyan"
+Write-Host "-------------------------------------------------------------------------" -ForegroundColor Gray
 
-# A. Estado del Prefetcher en el Registro
+# Verificación de Estado de Prefetch
 $PrefetchRegistry = Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters" -Name "EnablePrefetcher" -ErrorAction SilentlyContinue
 if ($PrefetchRegistry -and $PrefetchRegistry.EnablePrefetcher -eq 0) {
-    Escribir-Log "El Prefetcher está APAGADO (Valor 0) en el Registro. Bypass inminente." "Red" $true
+    Escribir-Log "[!!!] ACCIÓN EVASIVA: El Prefetcher del sistema operativo está APAGADO." "Red" $true
 } else {
-    Escribir-Log "Estado del servicio Prefetcher: Activo y Correcto." "Green"
+    Escribir-Log "[-] Estado del Prefetcher: Habilitado correctamente." "Green"
 }
 
-# B. Conteo y posible vaciado del directorio Prefetch
+# Conteo físico de archivos Prefetch
 $PrefetchCount = (Get-ChildItem -Path "$env:SystemRoot\Prefetch" -Filter "*.pf" -ErrorAction SilentlyContinue).Count
 if ($PrefetchCount -lt 15) {
-    Escribir-Log "La carpeta Prefetch tiene solo $PrefetchCount archivos. Evidencia clara de limpieza manual." "Red" $true
+    Escribir-Log "[!!!] ACCIÓN EVASIVA: Carpeta Prefetch vaciada. Solo se hallaron $PrefetchCount archivos." "Red" $true
 } else {
-    Escribir-Log "Volumen de archivos Prefetch normal ($PrefetchCount elementos)." "Green"
+    Escribir-Log "[-] Volumen de la base de datos Prefetch: Normal ($PrefetchCount elementos)." "Green"
 }
 
-# C. Análisis Forense de Inconsistencia en BAM (Búsqueda exhaustiva de archivos fantasma)
-Escribir-Log "Analizando registros BAM buscando archivos ejecutados y posteriormente eliminados..." "Gray"
+# Escaneo Profundo de Archivos Fantasma en BAM
+Escribir-Log "Cruzando registros BAM con el almacenamiento físico para buscar borrados rápidos..." "Gray"
 $BamPath = "HKLM:\SYSTEM\CurrentControlSet\Services\bam\State\UserSettings"
 $GhostFilesCount = 0
 
@@ -177,13 +180,25 @@ if (Test-Path $BamPath) {
         $UserValues = Get-ItemProperty -Path $Key.PSPath
         foreach ($Value in $UserValues.PSObject.Properties) {
             if ($Value.Name -match "\.exe|\.bat|\.py|\.ahk") {
-                $ContieneTermino = $false
-                foreach ($Termino in $FfmpegStrings) {
-                    if ($Value.Name.ToLower() -like "*$Termino*") { $ContieneTermino = $true }
+                $FilePathLower = $Value.Name.ToLower()
+                
+                # Comprobar si la ruta pertenece a una aplicación excluida
+                $EsExcluido = $false
+                foreach ($Pattern in $WhitelistPaths) {
+                    if ($FilePathLower -like "*$Pattern*") { $EsExcluido = $true }
+                }
+                
+                if (-not $EsExcluido) {
+                    $ContieneTermino = $false
+                    foreach ($Termino in $FfmpegStrings) {
+                        if ($FilePathLower -like "*$Termino*") { 
+                    $ContieneTermino = $true
+                    $TerminoDetectado = $Termino
                 }
 
+                # Si el archivo está en BAM pero fue eliminado físicamente del disco y no está excluido
                 if ($ContieneTermino -and -not (Test-Path $Value.Name -ErrorAction SilentlyContinue)) {
-                    Escribir-Log "EVASIÓN DETECTADA EN BAM: Se ejecutó software relacionado con ($Termino) pero fue ELIMINADO del disco: $($Value.Name)" "Red" $true
+                    Escribir-Log "[!] ARCHIVO FANTASMA (BAM): Ejecutado y eliminado del disco -> [$TerminoDetectado] en: $($Value.Name)" "Red" $true
                     $GhostFilesCount++
                 }
             }
@@ -192,14 +207,14 @@ if (Test-Path $BamPath) {
 }
 
 if ($GhostFilesCount -eq 0) {
-    Escribir-Log "No se encontraron discrepancias de archivos eliminados en BAM." "Green"
+    Escribir-Log "[-] Limpio: No se hallaron discrepancias ni eliminaciones agresivas en BAM." "Green"
 }
 
 # -------------------------------------------------------------------------
-# Cierre de la Herramienta
+# CIERRE Y REPORTE FINAL
 # -------------------------------------------------------------------------
-Escribir-Log "Análisis expandido completado con éxito." "Cyan"
-Write-Host "`n==================================================" -ForegroundColor Cyan
-Write-Host " REPORTE GENERADO EN EL ESCRITORIO POR ABYZOTH:" -ForegroundColor Yellow
+Write-Host "`n=========================================================================" -ForegroundColor DarkRed
+Escribir-Log "Análisis estructural finalizado con éxito." "Cyan"
+Write-Host " REPORTE DISPONIBLE EN EL ESCRITORIO POR IKXPZL:" -ForegroundColor Yellow
 Write-Host " $RutaReporte" -ForegroundColor White
-Write-Host "==================================================" -ForegroundColor Cyan
+Write-Host "=========================================================================" -ForegroundColor DarkRed
