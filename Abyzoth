@@ -5,7 +5,7 @@
 #  Requisito: Ejecutar en una consola de PowerShell como Administrador.
 
 Clear-Host
-$Version = "2.2.1"
+$Version = "2.2.2"
 $FechaActual = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
 $RutaReporte = "$env:USERPROFILE\Desktop\Abyzoth_Scan_Report_$FechaActual.txt"
 
@@ -177,33 +177,34 @@ $GhostFilesCount = 0
 if (Test-Path $BamPath) {
     $SubKeys = Get-ChildItem -Path $BamPath
     foreach ($Key in $SubKeys) {
-        $UserValues = Get-ItemProperty -Path $Key.PSPath
-        foreach ($Value in $UserValues.PSObject.Properties) {
-            if ($Value.Name -match "\.exe|\.bat|\.py|\.ahk") {
-                $FilePathLower = $Value.Name.ToLower()
-                
-                # Comprobar si la ruta pertenece a una aplicación excluida
-                $EsExcluido = $false
-                foreach ($Pattern in $WhitelistPaths) {
-                    if ($FilePathLower -like "*$Pattern*") { 
-                        $EsExcluido = $true 
-                    }
-                }
-                
-                if (-not $EsExcluido) {
-                    $ContieneTermino = $false
-                    foreach ($Termino in $FfmpegStrings) {
-                    foreach ($Termino in $FfmpegStrings) {
-                        if ($FilePathLower -like "*$Termino*") { 
-                            $ContieneTermino = $true
-                            $TerminoDetectado = $Termino
+        $UserValues = Get-ItemProperty -Path $Key.PSPath -ErrorAction SilentlyContinue
+        if ($UserValues) {
+            foreach ($Value in $UserValues.PSObject.Properties) {
+                if ($Value.Name -match "\.exe|\.bat|\.py|\.ahk") {
+                    $FilePathLower = $Value.Name.ToLower()
+                    
+                    # Comprobar si la ruta pertenece a una aplicación excluida
+                    $EsExcluido = $false
+                    foreach ($Pattern in $WhitelistPaths) {
+                        if ($FilePathLower -like "*$Pattern*") { 
+                            $EsExcluido = $true 
                         }
                     }
+                    
+                    if (-not $EsExcluido) {
+                        $ContieneTermino = $false
+                        foreach ($Termino in $FfmpegStrings) {
+                            if ($FilePathLower -like "*$Termino*") { 
+                                $ContieneTermino = $true 
+                                $TerminoDetectado = $Termino
+                            }
+                        }
 
-                    # Si el archivo está en BAM pero fue eliminado físicamente del disco y no está excluido
-                    if ($ContieneTermino -and -not (Test-Path $Value.Name -ErrorAction SilentlyContinue)) {
-                        Escribir-Log "[!] ARCHIVO FANTASMA (BAM): Ejecutado y eliminado del disco -> [$TerminoDetectado] en: $($Value.Name)" "Red" $true
-                        $GhostFilesCount++
+                        # Si el archivo está en BAM pero fue eliminado físicamente del disco y no está excluido
+                        if ($ContieneTermino -and -not (Test-Path $Value.Name -ErrorAction SilentlyContinue)) {
+                            Escribir-Log "[!] ARCHIVO FANTASMA (BAM): Ejecutado y eliminado del disco -> [$TerminoDetectado] en: $($Value.Name)" "Red" $true
+                            $GhostFilesCount++
+                        }
                     }
                 }
             }
@@ -212,7 +213,7 @@ if (Test-Path $BamPath) {
 }
 
 if ($GhostFilesCount -eq 0) {
-    Escribir-Log "[-] Limpio: No se hallaron discrepancias ni eliminaciones agresivas en BAM." "Green"
+    Escribir-Log "[-] Limpio: No se hallaron discrepancies ni eliminaciones agresivas en BAM." "Green"
 }
 
 # -------------------------------------------------------------------------
