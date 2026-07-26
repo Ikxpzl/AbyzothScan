@@ -1,5 +1,5 @@
 # =========================================================================
-#  ABYZOTH SCAN v5.0.2 - Sistema Forense por Índices (Sintaxis Garantizada)
+#  ABYZOTH SCAN v5.0.3 - Sistema Forense por Índices (Python Fix)
 # =========================================================================
 #  Desarrollado por: IkxPzl
 #  Requisito: Ejecutar en una consola de PowerShell como Administrador.
@@ -20,7 +20,7 @@ $Alertas_Bypass   = @()
 
 # Cabecera estética inicial
 Write-Host "=========================================================================" -ForegroundColor DarkRed
-Write-Host "                      ABYZOTH SCAN (COMPILACIÓN CORREGIDA)               " -ForegroundColor Red
+Write-Host "                      ABYZOTH SCAN (PYTHON CORREGIDO)                    " -ForegroundColor Red
 Write-Host "                       DESARROLLADO POR: IKXPZL                          " -ForegroundColor Yellow
 Write-Host "=========================================================================" -ForegroundColor DarkRed
 Write-Host "[+] Iniciando recolección de datos en segundo plano..." -ForegroundColor Gray
@@ -29,14 +29,28 @@ Write-Host "[+] Iniciando recolección de datos en segundo plano..." -Foreground
 # FASE 1: RECOLECCIÓN DE DATOS
 # =========================================================================
 
-# Sección A: Auditoría de Eventos de Consola (ID 4688)
+# Sección A: Auditoría de Eventos de Consola (ID 4688) - SOLUCIÓN PARA PYTHON
 $EventosSeguridad = Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4688} -ErrorAction SilentlyContinue
 foreach ($Ev in $EventosSeguridad) {
     $LineaComando = $Ev.Message.ToLower()
-    if ($LineaComando -match "python" -or $LineaComando -match "cmd.exe" -or $LineaComando -match "powershell.exe") {
+    
+    # ALERTA GENERAL: Si detecta CUALQUIER ejecución de Python, la registra de inmediato
+    if ($LineaComando -match "python\.exe" -or $LineaComando -match "pythonw\.exe" -or $LineaComando -match "python ") {
+        $HoraEv = $Ev.TimeCreated.ToString('HH:mm:ss')
+        $Alertas_Comandos += "[!] DETECTADO: Ejecución directa de Python a las -> $HoraEv"
+        
+        # Búsqueda profunda de argumentos sospechosos dentro de ese Python
         foreach ($Firma in $FirmasSospechosas) {
             if ($LineaComando -like "*$Firma*") {
-                $Alertas_Comandos += "[!] COINCIDENCIA: '$Firma' encontrada en -> $($Ev.TimeCreated.ToString('HH:mm:ss'))"
+                $Alertas_Comandos += "    └─ CRÍTICO: Python incluye argumento sospechoso: '$Firma'"
+            }
+        }
+    }
+    # RASTREO SECUNDARIO: Para CMD o PowerShell ejecutando comandos del diccionario
+    elseif ($LineaComando -match "cmd\.exe" -or $LineaComando -match "powershell\.exe") {
+        foreach ($Firma in $FirmasSospechosas) {
+            if ($LineaComando -like "*$Firma*") {
+                $Alertas_Comandos += "[!] COINCIDENCIA SHELL: '$Firma' encontrada en consola -> $($Ev.TimeCreated.ToString('HH:mm:ss'))"
             }
         }
     }
@@ -45,7 +59,7 @@ foreach ($Ev in $EventosSeguridad) {
 # Sección B: Auditoría de Procesos Activos y PSR
 $TodosLosProcesos = Get-Process
 foreach ($P in $TodosLosProcesos) {
-    foreach ($Firma in @("zen", "firefox", "obs", "medal", "sharex", "autohotkey", "psr")) {
+    foreach ($Firma in @("zen", "firefox", "obs", "medal", "sharex", "autohotkey", "psr", "python")) {
         if ($P.Name.ToLower() -match $Firma) {
             try { $RutaBinar = $P.Path } catch { $RutaBinar = "Oculto/Protegido" }
             $Alertas_Memoria += "[!] PROCESO ACTIVO: Se detectó '$($P.Name)' (PID: $($P.Id)) en la ruta [$RutaBinar]"
@@ -109,7 +123,7 @@ if (Test-Path $RutaBam) {
 # =========================================================================
 Clear-Host
 Write-Host "=========================================================================" -ForegroundColor DarkRed
-Write-Host "                         ABYZOTH SCAN v5.0.2                             " -ForegroundColor Red
+Write-Host "                         ABYZOTH SCAN v5.0.3                             " -ForegroundColor Red
 Write-Host "                       DESARROLLADO POR: IKXPZL                          " -ForegroundColor Yellow
 Write-Host "=========================================================================" -ForegroundColor DarkRed
 
