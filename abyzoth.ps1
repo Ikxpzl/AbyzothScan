@@ -1,5 +1,5 @@
 # =========================================================================
-#  ABYZOTH SCAN v6.5.0 - Sistema Forense Ampliado de Alta Velocidad
+#  ABYZOTH SCAN v1.1.0 - Sistema Forense 
 # =========================================================================
 #  Desarrollado por: IkxPzl (Rediseño Estético, Corrección de Errores y Erratas)
 #  Requisito: Ejecutar en una consola de PowerShell como Administrador.
@@ -28,7 +28,7 @@ Write-Host " ┌─────────────────────�
 Write-Host " │                   ABYZOTH FORENSIC ENGINE v$Version                   │" -ForegroundColor Cyan
 Write-Host " │                       CORE LOGIC BY: IKXPZL                           │" -ForegroundColor DarkCyan
 Write-Host " └───────────────────────────────────────────────────────────────────────┘" -ForegroundColor Cyan
-Write-Host " [i] Inicializando minería forense de alta velocidad..." -ForegroundColor Gray
+Write-Host " [i] Iniciando detecciones forenses de alta velocidad..." -ForegroundColor Gray
 Write-Host " -------------------------------------------------------------------------" -ForegroundColor Gray
 
 # =========================================================================
