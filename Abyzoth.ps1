@@ -1,5 +1,5 @@
 # =========================================================================
-#  ABYZOTH SCAN v1.0.1 - Sistema Forense por Índices (Sintaxis Corregida)
+#  ABYZOTH SCAN v5.0.2 - Sistema Forense por Índices (Sintaxis Garantizada)
 # =========================================================================
 #  Desarrollado por: IkxPzl
 #  Requisito: Ejecutar en una consola de PowerShell como Administrador.
@@ -20,13 +20,13 @@ $Alertas_Bypass   = @()
 
 # Cabecera estética inicial
 Write-Host "=========================================================================" -ForegroundColor DarkRed
-Write-Host "                      ABYZOTH SCAN (SINTAXIS FIJADA)                    " -ForegroundColor Red
+Write-Host "                      ABYZOTH SCAN (COMPILACIÓN CORREGIDA)               " -ForegroundColor Red
 Write-Host "                       DESARROLLADO POR: IKXPZL                          " -ForegroundColor Yellow
 Write-Host "=========================================================================" -ForegroundColor DarkRed
 Write-Host "[+] Iniciando recolección de datos en segundo plano..." -ForegroundColor Gray
 
 # =========================================================================
-# FASE 1: RECOLECCIÓN DE DATOS (PROCESAMIENTO LINEAL CORREGIDO)
+# FASE 1: RECOLECCIÓN DE DATOS
 # =========================================================================
 
 # Sección A: Auditoría de Eventos de Consola (ID 4688)
@@ -105,11 +105,11 @@ if (Test-Path $RutaBam) {
 }
 
 # =========================================================================
-# FASE 2: INTERFAZ VISUAL ORDENADA (IMPRESIÓN ESTRUCTURADA DE RESULTADOS)
+# FASE 2: INTERFAZ VISUAL ORDENADA
 # =========================================================================
 Clear-Host
 Write-Host "=========================================================================" -ForegroundColor DarkRed
-Write-Host "                         ABYZOTH SCAN v5.0.1                             " -ForegroundColor Red
+Write-Host "                         ABYZOTH SCAN v5.0.2                             " -ForegroundColor Red
 Write-Host "                       DESARROLLADO POR: IKXPZL                          " -ForegroundColor Yellow
 Write-Host "=========================================================================" -ForegroundColor DarkRed
 
