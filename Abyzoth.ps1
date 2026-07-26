@@ -1,5 +1,5 @@
 # =========================================================================
-#  ABYZOTH SCAN v5.0.3 - Sistema Forense por Índices (Python Fix)
+#  ABYZOTH SCAN v5.0.4 - Sistema Forense por Índices (Python Absolute Fix)
 # =========================================================================
 #  Desarrollado por: IkxPzl
 #  Requisito: Ejecutar en una consola de PowerShell como Administrador.
@@ -9,7 +9,7 @@ $FechaActual = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
 $RutaReporte = "$env:USERPROFILE\Desktop\Abyzoth_Scan_Report_$FechaActual.txt"
 
 # 1. ARREGLOS DE CONTROL (LISTAS DE BÚSQUEDA Y EXCLUSIÓN)
-$FirmasSospechosas = @("ffmpeg", "grabadora", "record", "stream", "obs", "d3d", "capture", "zen", "mozilla", "firefox", "file:", "medal", "action", "bandicam", "sharex", "vlc", "lightshot", "overwolf", "shadowplay", "relive", "screen", "recorder", "overlay", "injector", "temp", "macro", "trigger", "recoil", "aim", "cheat", "bhop", "script", "hotkey", "psr")
+$FirmasSospechosas = @("ffmpeg", "grabadora", "record", "stream", "obs", "d3d", "capture", "zen", "mozilla", "firefox", "file:", "medal", "action", "bandicam", "sharex", "vlc", "lightshot", "overwolf", "shadowplay", "relive", "screen", "recorder", "overlay", "injector", "temp", "macro", "trigger", "recoil", "aim", "cheat", "bhop", "script", "hotkey", "psr", "meny.py", "menu.py", ".py")
 $Exclusiones       = @("roblox", "overwolf", "nvidia", "discord", "spotify", "steam", "epicgames", "microsoft")
 
 # 2. CONTENEDORES DE ALERTAS (ESTRUCTURA DE ALMACENAMIENTO PLANA)
@@ -20,7 +20,7 @@ $Alertas_Bypass   = @()
 
 # Cabecera estética inicial
 Write-Host "=========================================================================" -ForegroundColor DarkRed
-Write-Host "                      ABYZOTH SCAN (PYTHON CORREGIDO)                    " -ForegroundColor Red
+Write-Host "                      ABYZOTH SCAN (NUEVO MOTOR PYTHON)                  " -ForegroundColor Red
 Write-Host "                       DESARROLLADO POR: IKXPZL                          " -ForegroundColor Yellow
 Write-Host "=========================================================================" -ForegroundColor DarkRed
 Write-Host "[+] Iniciando recolección de datos en segundo plano..." -ForegroundColor Gray
@@ -29,28 +29,29 @@ Write-Host "[+] Iniciando recolección de datos en segundo plano..." -Foreground
 # FASE 1: RECOLECCIÓN DE DATOS
 # =========================================================================
 
-# Sección A: Auditoría de Eventos de Consola (ID 4688) - SOLUCIÓN PARA PYTHON
+# Sección A: Auditoría de Eventos de Consola (ID 4688) - MOTOR ULTRA-DETECTOR
 $EventosSeguridad = Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4688} -ErrorAction SilentlyContinue
 foreach ($Ev in $EventosSeguridad) {
     $LineaComando = $Ev.Message.ToLower()
     
-    # ALERTA GENERAL: Si detecta CUALQUIER ejecución de Python, la registra de inmediato
-    if ($LineaComando -match "python\.exe" -or $LineaComando -match "pythonw\.exe" -or $LineaComando -match "python ") {
+    # Detección absoluta: intercepta si se invoca el intérprete o si se nombra el script directamente
+    if ($LineaComando -match "python" -or $LineaComando -match "\.py" -or $LineaComando -match "meny") {
         $HoraEv = $Ev.TimeCreated.ToString('HH:mm:ss')
-        $Alertas_Comandos += "[!] DETECTADO: Ejecución directa de Python a las -> $HoraEv"
+        $Alertas_Comandos += "[!] DETECTADO: Actividad / Parámetro de Python a las -> $HoraEv"
+        $Alertas_Comandos += "    └─ Comando completo: $($Ev.Message -replace '\s+', ' ')"
         
-        # Búsqueda profunda de argumentos sospechosos dentro de ese Python
+        # Clasificación interna del riesgo por strings sospechosas
         foreach ($Firma in $FirmasSospechosas) {
             if ($LineaComando -like "*$Firma*") {
-                $Alertas_Comandos += "    └─ CRÍTICO: Python incluye argumento sospechoso: '$Firma'"
+                $Alertas_Comandos += "       [!] ALERTA CRÍTICA: Coincidencia con firma de riesgo -> '$Firma'"
             }
         }
     }
-    # RASTREO SECUNDARIO: Para CMD o PowerShell ejecutando comandos del diccionario
+    # Rastreo para consolas nativas independientes
     elseif ($LineaComando -match "cmd\.exe" -or $LineaComando -match "powershell\.exe") {
         foreach ($Firma in $FirmasSospechosas) {
             if ($LineaComando -like "*$Firma*") {
-                $Alertas_Comandos += "[!] COINCIDENCIA SHELL: '$Firma' encontrada en consola -> $($Ev.TimeCreated.ToString('HH:mm:ss'))"
+                $Alertas_Comandos += "[!] COINCIDENCIA SHELL: '$Firma' encontrada en terminal externa -> $($Ev.TimeCreated.ToString('HH:mm:ss'))"
             }
         }
     }
@@ -71,7 +72,7 @@ foreach ($P in $TodosLosProcesos) {
 $EventosPca = Get-WinEvent -FilterHashtable @{LogName="Microsoft-Windows-Application-Experience/Program-Telemetry"; Id=100} -ErrorAction SilentlyContinue
 foreach ($Ev in $EventosPca) {
     $MsgPca = $Ev.Message.ToLower()
-    if ($MsgPca -match "\.bat" -or $MsgPca -match "cmd.exe" -or $MsgPca -match "temp") {
+    if ($MsgPca -match "\.bat" -or $MsgPca -match "cmd.exe" -or $MsgPca -match "temp" -or $MsgPca -match "meny" -or $MsgPca -match "\.py") {
         $Alertas_PcaSvc += "[!] REGISTRO PCASVC ($($Ev.TimeCreated.ToString('HH:mm:ss'))): Script/Comando -> $($Ev.Message -replace '\s+', ' ')"
     }
 }
@@ -79,11 +80,11 @@ foreach ($Ev in $EventosPca) {
 # Sección D: Auditoría de Integridad (Prefetch)
 $PrefetchReg = Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters" -Name "EnablePrefetcher" -ErrorAction SilentlyContinue
 if ($PrefetchReg -and $PrefetchReg.EnablePrefetcher -eq 0) {
-    $Alertas_Bypass += "[!!!] CRÍTICO: El servicio Prefetcher está APAGADO en el Registro de Windows."
+    $Alertas_Bypass += "[!!!] ACCIÓN EVASIVA: El servicio Prefetcher está APAGADO en el Registro de Windows."
 }
 $ContadorPf = (Get-ChildItem -Path "$env:SystemRoot\Prefetch" -Filter "*.pf" -ErrorAction SilentlyContinue).Count
 if ($ContadorPf -lt 15) {
-    $Alertas_Bypass += "[!!!] CRÍTICO: Carpeta Prefetch vaciada recientemente. Solo quedan $ContadorPf archivos."
+    $Alertas_Bypass += "[!!!] ACCIÓN EVASIVA: Carpeta Prefetch vaciada recientemente. Solo quedan $ContadorPf archivos."
 }
 
 # Sección E: Auditoría de Archivos Fantasma (BAM)
@@ -97,7 +98,6 @@ if (Test-Path $RutaBam) {
                 if ($Propiedad.Name -match "\.exe|\.bat|\.py|\.ahk") {
                     $RutaNormalizada = $Propiedad.Name.ToLower()
                     
-                    # Verificar si la ruta está en la lista de exclusiones
                     $Ignorar = $false
                     foreach ($Excluir in $Exclusiones) {
                         if ($RutaNormalizada -like "*$Excluir*") { $Ignorar = $true }
@@ -123,7 +123,7 @@ if (Test-Path $RutaBam) {
 # =========================================================================
 Clear-Host
 Write-Host "=========================================================================" -ForegroundColor DarkRed
-Write-Host "                         ABYZOTH SCAN v5.0.3                             " -ForegroundColor Red
+Write-Host "                         ABYZOTH SCAN v5.0.4                             " -ForegroundColor Red
 Write-Host "                       DESARROLLADO POR: IKXPZL                          " -ForegroundColor Yellow
 Write-Host "=========================================================================" -ForegroundColor DarkRed
 
